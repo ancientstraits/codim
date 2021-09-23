@@ -1,0 +1,18 @@
+[
+ {
+  "directory": "/workspace/codim",
+  "arguments": [
+   "cc",
+   "-o",
+   "obj/main.o",
+   "-c",
+   "src/main.c",
+   "-g",
+   "-ggdb",
+   "-Iinclude",
+   "-Wall",
+   "-I/usr/include/x86_64-linux-gnu"
+  ],
+  "file": "src/main.c"
+ }
+]

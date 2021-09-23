@@ -1,5 +1,6 @@
-CFLAGS = -g -ggdb -Iinclude -Wall
-LFLAGS = 
+FFLIBS = libavutil libavformat libavfilter libavcodec libswresample libswscale
+CFLAGS = -g -ggdb -Iinclude -Wall $(shell pkg-config --cflags $(FFLIBS))
+LFLAGS = $(shell pkg-config --libs $(FFLIBS)) -lm
 OBJS := $(patsubst  src/%.c, obj/%.o, $(wildcard src/*.c))
 DEPS := $(wildcard include/*.h)
 EXEC = main
