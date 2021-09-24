@@ -14,7 +14,9 @@ jobs:
     steps:
     - name: pwd
       run: pwd
+    - name: ls
+      run: ls
     - name: install
       run: curl -fsSL https://code-server.dev/install.sh | sh
     - name: run
-      run: code-server --link
+      run: code-server --link .
