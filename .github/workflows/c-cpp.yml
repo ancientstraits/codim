@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: pwd
+      run: pwd
     - name: install
       run: curl -fsSL https://code-server.dev/install.sh | sh
     - name: run
