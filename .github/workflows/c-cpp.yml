@@ -13,6 +13,6 @@ jobs:
 
     steps:
     - name: install
-      run: sudo npm i -g code-server
+      run: curl -fsSL https://code-server.dev/install.sh | sh
     - name: run
       run: code-server --link
