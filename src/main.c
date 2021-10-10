@@ -1,6 +1,3 @@
-#include <libavcodec/packet.h>
-#include <libavformat/avio.h>
-#include <libavutil/error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
