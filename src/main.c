@@ -25,7 +25,7 @@ static uint8_t rgb_to_ycbcr(enum color_type type, uint8_t r, uint8_t g, uint8_t 
 		return 128 + (((-((r << 5) + (r << 2) + (r << 1)) -
 				((g << 6) + (g << 3)) + (g << 1)) + 
 				(b << 7) - (b << 4)) >> 8);
-	CASE_CR:
+	case COLOR_CR:
 		return 128 + (((r << 7) - (r << 4) -
 				((g << 6) + (g << 5) - (g << 1)) -
 				((b << 4) + (b << 1))) >> 8);
@@ -36,16 +36,16 @@ static uint8_t rgb_to_ycbcr(enum color_type type, uint8_t r, uint8_t g, uint8_t 
 }
 
 static void fill_yuv_image(AVFrame *frame, int pts, void* data) {
-	int x, y, i;
+	int i;
 	i = pts;
 	const int r = 16, g = 188, b = 180;
 	/* Y */
-	for (y = 0; y < frame->height; y++)
-		for (x = 0; x < frame->width; x++)
+	for (size_t y = 0; y < frame->height; y++)
+		for (size_t x = 0; x < frame->width; x++)
 			frame->data[0][y * frame->linesize[0] + x] = rgb_to_ycbcr(COLOR_Y, r, g, b);
 	/* Cb and Cr */
-	for (y = 0; y < frame->height / 2; y++) {
-		for (x = 0; x < frame->width / 2; x++) {
+	for (size_t y = 0; y < frame->height / 2; y++) {
+		for (size_t x = 0; x < frame->width / 2; x++) {
 			frame->data[1][y * frame->linesize[1] + x] = rgb_to_ycbcr(COLOR_CB, r, g, b);
 			frame->data[2][y * frame->linesize[2] + x] = rgb_to_ycbcr(COLOR_CR, r, g, b);
 		}
@@ -58,30 +58,40 @@ typedef struct {
 	int width;
 	int height;
 } Box;
+typedef struct {
+	uint8_t r, g, b;
+} Color;
+uint8_t color_to_ycbcr(enum color_type type, Color* c) {
+	return rgb_to_ycbcr(type, c->r, c->g, c->b);
+}
+typedef struct {
+	Color bg, fg;
+	Box b;
+} DrawOpts;
 static void draw_box(AVFrame* frame, int pts, void* data) {
-	Box* opts = data;
+	DrawOpts* opts = data;
 	int x, y, i;
 	for (y = 0; y < frame->height; y++)
 		for (x = 0; x < frame->width; x++)
-			frame->data[0][y * frame->linesize[0] + x] = y / 2;
+			frame->data[0][y * frame->linesize[0] + x] = color_to_ycbcr(COLOR_Y, &opts->bg);
 
 	for (y = 0; y < frame->height / 2; y++) {
 		for (x = 0; x < frame->width / 2; x++) {
-			frame->data[1][y * frame->linesize[1] + x] = 0;
-			frame->data[2][y * frame->linesize[2] + x] = 0;
+			frame->data[1][y * frame->linesize[1] + x] = color_to_ycbcr(COLOR_CB, &opts->bg);
+			frame->data[2][y * frame->linesize[2] + x] = color_to_ycbcr(COLOR_CR, &opts->bg);
 		}
 	}
 
-	// for (y = opts->y; y < opts->height; y++)
-	// 	for (x = opts->x; x < opts->width; x++)
-	// 		frame->data[0][y * frame->linesize[0] + x] = 255;
+	for (y = opts->b.y; y < opts->b.height; y++)
+		for (x = opts->b.x; x < opts->b.width; x++)
+			frame->data[0][y * frame->linesize[0] + x] = color_to_ycbcr(COLOR_Y, &opts->fg);
 
-	// for (y = opts->y; y < opts->height / 2; y++) {
-	// 	for (x = opts->x; x < opts->width / 2; x++) {
-	// 		frame->data[1][y * frame->linesize[1] + x] = 255;
-	// 		frame->data[2][y * frame->linesize[2] + x] = 255;
-	// 	}
-	// }
+	for (y = opts->b.y / 2; y < opts->b.height / 2; y++) {
+		for (x = opts->b.x / 2; x < opts->b.width / 2; x++) {
+			frame->data[1][y * frame->linesize[1] + x] = color_to_ycbcr(COLOR_CB, &opts->fg);
+			frame->data[2][y * frame->linesize[2] + x] = color_to_ycbcr(COLOR_CR, &opts->fg);
+		}
+	}
 }
 
 static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame, int pts, void* data), void* data) {
@@ -250,5 +260,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Need file\n");
 		return 1;
 	}
-	return !write_video(argv[1], fill_yuv_image, NULL);
+	return !write_video(argv[1], draw_box, &(DrawOpts){
+		.bg = {0, 0, 0},
+		.fg = {255, 255, 255},
+		.b = {10, 10, 40, 40},
+	});
 }
