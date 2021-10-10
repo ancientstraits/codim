@@ -9,26 +9,85 @@
 #include <libavutil/avutil.h>
 #include <libavfilter/avfilter.h>
 
-static void fill_yuv_image(AVFrame *frame, int pts) {
+#define PIX_FMT AV_PIX_FMT_YUV420P
+
+enum color_type {
+	COLOR_Y,
+	COLOR_CB,
+	COLOR_CR,
+};
+static uint8_t rgb_to_ycbcr(enum color_type type, uint8_t r, uint8_t g, uint8_t b) {
+	switch (type) {
+	case COLOR_Y:
+		return 16 + (((r << 6) + (r << 1) + (g << 7) + g
+		+ (b << 4) + (b << 3) + b) >> 8);
+	case COLOR_CB:
+		return 128 + (((-((r << 5) + (r << 2) + (r << 1)) -
+				((g << 6) + (g << 3)) + (g << 1)) + 
+				(b << 7) - (b << 4)) >> 8);
+	CASE_CR:
+		return 128 + (((r << 7) - (r << 4) -
+				((g << 6) + (g << 5) - (g << 1)) -
+				((b << 4) + (b << 1))) >> 8);
+
+	default:
+		return 0;
+	}
+}
+
+static void fill_yuv_image(AVFrame *frame, int pts, void* data) {
 	int x, y, i;
 	i = pts;
+	const int r = 16, g = 188, b = 180;
 	/* Y */
 	for (y = 0; y < frame->height; y++)
 		for (x = 0; x < frame->width; x++)
-			frame->data[0][y * frame->linesize[0] + x] = x + y + i * 3;
+			frame->data[0][y * frame->linesize[0] + x] = rgb_to_ycbcr(COLOR_Y, r, g, b);
 	/* Cb and Cr */
 	for (y = 0; y < frame->height / 2; y++) {
 		for (x = 0; x < frame->width / 2; x++) {
-			frame->data[1][y * frame->linesize[1] + x] = 128 + y + i * 2;
-			frame->data[2][y * frame->linesize[2] + x] = 64 + x + i * 5;
+			frame->data[1][y * frame->linesize[1] + x] = rgb_to_ycbcr(COLOR_CB, r, g, b);
+			frame->data[2][y * frame->linesize[2] + x] = rgb_to_ycbcr(COLOR_CR, r, g, b);
 		}
 	}
 }
 
-static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame, int pts)) {
+typedef struct {
+	int x;
+	int y;
+	int width;
+	int height;
+} Box;
+static void draw_box(AVFrame* frame, int pts, void* data) {
+	Box* opts = data;
+	int x, y, i;
+	for (y = 0; y < frame->height; y++)
+		for (x = 0; x < frame->width; x++)
+			frame->data[0][y * frame->linesize[0] + x] = y / 2;
+
+	for (y = 0; y < frame->height / 2; y++) {
+		for (x = 0; x < frame->width / 2; x++) {
+			frame->data[1][y * frame->linesize[1] + x] = 0;
+			frame->data[2][y * frame->linesize[2] + x] = 0;
+		}
+	}
+
+	// for (y = opts->y; y < opts->height; y++)
+	// 	for (x = opts->x; x < opts->width; x++)
+	// 		frame->data[0][y * frame->linesize[0] + x] = 255;
+
+	// for (y = opts->y; y < opts->height / 2; y++) {
+	// 	for (x = opts->x; x < opts->width / 2; x++) {
+	// 		frame->data[1][y * frame->linesize[1] + x] = 255;
+	// 		frame->data[2][y * frame->linesize[2] + x] = 255;
+	// 	}
+	// }
+}
+
+static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame, int pts, void* data), void* data) {
 	const int FPS = 24.0;
 	const int RES[2] = {1366, 768};
-	const long DURATION = 10;
+	const long DURATION = 1;
 
 	long next_pts = 0;
 	int samples_count = 0;
@@ -80,7 +139,7 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 	stream->time_base = (AVRational){1, FPS};
 	cod_ctx->time_base = stream->time_base;
 	cod_ctx->gop_size = 12;
-	cod_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+	cod_ctx->pix_fmt = PIX_FMT;
 
 	switch (cod_ctx->codec_id) {
 	case AV_CODEC_ID_MPEG2VIDEO:
@@ -106,7 +165,7 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 		fprintf(stderr, "Could not allocate frame\n");
 		return 0;
 	}
-	frame->format = AV_PIX_FMT_YUV420P;
+	frame->format = AV_PIX_FMT_GBRP;
 	frame->width = RES[0];
 	frame->height = RES[1];
 	if (av_frame_get_buffer(frame, 0) < 0) {
@@ -143,9 +202,9 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 			fprintf(stderr, "Frame not writable, exiting now");
 			return 0;
 		}
-		assert(cod_ctx->pix_fmt == AV_PIX_FMT_YUV420P);
+		// assert(cod_ctx->pix_fmt == AV_PIX_FMT_GBRP);
 
-		(*draw_func)(frame, next_pts);
+		(*draw_func)(frame, next_pts, data);
 
 		frame->pts = next_pts++;
 
@@ -191,5 +250,5 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Need file\n");
 		return 1;
 	}
-	return !write_video(argv[1], fill_yuv_image);
+	return !write_video(argv[1], fill_yuv_image, NULL);
 }
