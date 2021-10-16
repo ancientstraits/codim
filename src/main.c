@@ -1,10 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libavfilter/avfilter.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "video.h"
 
 #define PIX_FMT AV_PIX_FMT_YUV420P
 
@@ -32,7 +38,7 @@ static uint8_t rgb_to_ycbcr(enum color_type type, uint8_t r, uint8_t g, uint8_t 
 	}
 }
 
-static void fill_yuv_image(AVFrame *frame, int pts, void* data) {
+static void fill_yuv_image(AVFrame *frame, int pts) {
 	int i;
 	i = pts;
 	const int r = 16, g = 188, b = 180;
@@ -44,7 +50,7 @@ static void fill_yuv_image(AVFrame *frame, int pts, void* data) {
 	for (size_t y = 0; y < frame->height / 2; y++) {
 		for (size_t x = 0; x < frame->width / 2; x++) {
 			frame->data[1][y * frame->linesize[1] + x] = rgb_to_ycbcr(COLOR_CB, r, g, b);
-			frame->data[2][y * frame->linesize[2] + x] = rgb_to_ycbcr(COLOR_CR, r, g, b);
+	frame->data[2][y * frame->linesize[2] + x] = rgb_to_ycbcr(COLOR_CR, r, g, b);
 		}
 	}
 }
@@ -215,7 +221,6 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 
 		frame->pts = next_pts++;
 
-		// write_frame()
 		int ret;
 		if ((ret = avcodec_send_frame(cod_ctx, frame)) < 0) {
 			fprintf(stderr, "Failed to send frame to encoder: %s\n",
@@ -237,7 +242,7 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 			if (ret < 0) {
 				fprintf(stderr, "Could not write frame to file: %s\n",
 						av_err2str(ret));
-				return 1;
+				return 0;
 			}
 		}
 		encode_video = ret != AVERROR_EOF;
@@ -253,13 +258,14 @@ static int write_video(const char *video_path, void (*draw_func)(AVFrame* frame,
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 2) {
-		fprintf(stderr, "Need file\n");
-		return 1;
+	// if (argc < 2) {
+	// 	fprintf(stderr, "Need file\n");
+	// 	return 1;
+	// }
+	VideoContext* vc = video_context_create("out.mp4", 600, 400, 24, 1);
+	for (int i = 0; i < 1000; i++) {
+		fill_yuv_image(vc->frame, vc->pts);
+		video_context_write_frame(vc);
 	}
-	return !write_video(argv[1], draw_box, &(DrawOpts){
-		.bg = {0, 0, 0},
-		.fg = {255, 255, 255},
-		.b = {10, 10, 40, 40},
-	});
+	video_context_save_and_delete(vc);
 }
