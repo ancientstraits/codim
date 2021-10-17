@@ -121,7 +121,6 @@ int video_context_write_frame(VideoContext *vc) {
 	int ret;
 	// TODO can we remove vc->pts?
 	vc->frame->pts = vc->pts++;
-	printf("PTS = %lu\n", vc->pts);
 	if ((ret = avcodec_send_frame(vc->cod_ctx, vc->frame)) < 0) {
 		fprintf(stderr, "Failed to send frame to encoder: %s\n", av_err2str(ret));
 		return 0;

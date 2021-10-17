@@ -11,12 +11,12 @@ enum {
 // Convert an RGB color to YCbCr.
 uint8_t rgb_to_ycbcr(int type, uint8_t r, uint8_t g, uint8_t b);
 
-typedef struct {
-	uint8_t r, b, g;
-} Color;
+void draw_pixel(AVFrame* frame, int x, int y, int color);
+
 typedef struct {
 	uint32_t x, y, width, height;
 } Rect;
-void draw_box(AVFrame* f, Rect r, Color fg, Color bg);
+// Draw a box. fg and bx are hexcodes.
+void draw_box(AVFrame* f, Rect r, int fg, int bg);
 
 #endif // !DRAWING_H

@@ -12,6 +12,7 @@
 
 #include "video.h"
 #include "drawing.h"
+#include "text.h"
 
 #define PIX_FMT AV_PIX_FMT_YUV420P
 
@@ -258,15 +259,27 @@
 // 	return 1;
 // }
 
+const char* string = 
+	"#include <stdio.h>\n"
+	"int main(int argc, char* argv[]) {\n"
+	"    printf(\"Hello World!\\n\")\n"
+	"    return 0;\n"
+	"}"
+;
+
 int main(int argc, char *argv[]) {
 	// if (argc < 2) {
 	// 	fprintf(stderr, "Need file\n");
 	// 	return 1;
 	// }
 	VideoContext* vc = video_context_create("out.mp4", 600, 400, 24, 1);
+	TextContext* tc  = text_context_init("/Users/newuser/file.ttf", 5, 600, 400);
+	draw_box(vc->frame, (Rect){50, 50, 525, 325}, 0x333333, 0xCCCCCC);
+	draw_text(tc, vc->frame, "File: src/main.c", 50, 25, 0x000000);
+	draw_text(tc, vc->frame, string, 100, 75, 0xFFFFFF);
 	for (int i = 0; i < 1000; i++) {
-		draw_box(vc->frame, (Rect){10, 10, 40, 40}, (Color){0, 0, 0}, (Color){255, 255, 255});
 		video_context_write_frame(vc);
 	}
+	text_context_delete(tc);
 	video_context_save_and_delete(vc);
 }
