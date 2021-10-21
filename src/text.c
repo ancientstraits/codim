@@ -1,6 +1,9 @@
 #include <stdio.h>
 
 #include "drawing.h"
+#include "freetype/freetype.h"
+#include "freetype/ftimage.h"
+#include "freetype/fttypes.h"
 #include "text.h"
 
 TextContext* text_context_init(const char *font_path, size_t font_size, int width, int height) {
@@ -18,6 +21,20 @@ TextContext* text_context_init(const char *font_path, size_t font_size, int widt
 		fprintf(stderr, "Failed to set font size\n");
 		return NULL;
 	}
+	FT_Matrix matrix;
+
+	// const double angle = 10.0;
+	// const double s_a = -1;
+	// const double c_a = 1;
+	// matrix.xx = (FT_Fixed)( 1 * 0x10000L);
+	// matrix.xy = (FT_Fixed)( 0 * 0x10000L);
+	// matrix.yx = (FT_Fixed)( 0 * 0x10000L);
+	// matrix.yy = (FT_Fixed)(-2 * 0x10000L);
+	matrix.xx = 0x10000L;
+    matrix.xy = 0;
+    matrix.yx = 0.12 * 0x10000L;
+    matrix.yy = 0x10000L;
+	FT_Set_Transform(tc->face, &matrix, NULL);
 	return tc;
 }
 
@@ -57,11 +74,11 @@ int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int yp
 			continue;
 		}
 		if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, str[i]), 0)) {
-			fprintf(stderr, "Failed to load character in FreeType\n");
+			fprintf(stderr, "Failed to load character in FreeType: '%c'\n", str[i]);
 			return 1;
 		}
 		if (FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL)) {
-			fprintf(stderr, "Failed to load character in FreeType\n");
+			fprintf(stderr, "Failed to load character in FreeType: '%c'\n", str[i]);
 			return 1;
 		}
 		// printf("FT Info: size: %dx%d", slot->bitmap.rows, slot->bitmap.width);

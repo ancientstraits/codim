@@ -47,7 +47,7 @@ VideoContext *video_context_create(const char *video_path, size_t width,
 	}
 	vc->cod_ctx->codec_id = out_fmt->video_codec;
 	// TODO try changing this value
-	vc->cod_ctx->bit_rate = 4e5;
+	// vc->cod_ctx->bit_rate = 4e5;
 	vc->cod_ctx->width = width;
 	vc->cod_ctx->height = height;
 	vc->stream->time_base = (AVRational){1, fps};

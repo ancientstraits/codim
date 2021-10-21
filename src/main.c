@@ -1,3 +1,4 @@
+#include <libavutil/frame.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -13,6 +14,7 @@
 #include "video.h"
 #include "drawing.h"
 #include "text.h"
+#include "filter.h"
 
 #define PIX_FMT AV_PIX_FMT_YUV420P
 
@@ -30,14 +32,11 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Usage: %s [OUTPUT_VIDEO_FILE]\n", argv[0]);
 		return 1;
 	}
-	VideoContext* vc = video_context_create(argv[1], 600, 400, 24, 1);
-	TextContext* tc  = text_context_init("/Users/newuser/file.ttf", 5, 600, 400);
-	draw_box(vc->frame, (Rect){50, 50, 525, 325}, 0x333333, 0xCCCCCC);
-	draw_text(tc, vc->frame, "File: src/main.c", 50, 25, 0x000000);
-	draw_text(tc, vc->frame, string, 100, 75, 0xFFFFFF);
-	for (int i = 0; i < 1000; i++) {
-		video_context_write_frame(vc);
-	}
-	text_context_delete(tc);
+	VideoContext* vc = video_context_create(argv[1], 1920, 1080, 24, 1);
+	FilterContext* fc = filter_context_create(vc);
+	AVFrame* frame = malloc(sizeof(AVFrame));
+	filter_context_exec(fc, frame, "null");
+	free(frame);
+	video_context_write_frame(vc);
 	video_context_save_and_delete(vc);
 }
