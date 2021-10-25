@@ -43,7 +43,7 @@ FilterContext* filter_context_create(VideoContext* vc) {
         fprintf(stderr, "Failed to create buffer sink\n");
         return NULL;
     }
-    enum AVPixelFormat pix_fmts[] = {AV_PIX_FMT_NONE, AV_PIX_FMT_YUV420P};
+    enum AVPixelFormat pix_fmts[] = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE};
     if (av_opt_set_int_list(fc->buffersink_ctx, "pix_fmts", pix_fmts, AV_PIX_FMT_YUV420P, AV_OPT_SEARCH_CHILDREN) < 0) {
         fprintf(stderr, "Could not set pixel format\n");
         return NULL;

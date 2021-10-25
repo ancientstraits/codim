@@ -17,6 +17,6 @@ typedef struct {
 	uint32_t x, y, width, height;
 } Rect;
 // Draw a box. fg and bx are hexcodes.
-void draw_box(AVFrame* f, Rect r, int fg, int bg);
+void draw_box(AVFrame* f, Rect* r, int fg, int bg);
 
 #endif // !DRAWING_H

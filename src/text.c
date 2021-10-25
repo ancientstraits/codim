@@ -1,9 +1,10 @@
 #include <stdio.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "drawutils.h"
 #include "drawing.h"
-#include "freetype/freetype.h"
-#include "freetype/ftimage.h"
-#include "freetype/fttypes.h"
 #include "text.h"
 
 TextContext* text_context_init(const char *font_path, size_t font_size, int width, int height) {
@@ -90,4 +91,3 @@ int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int yp
 	}
 	return 0;
 }
-
