@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 
 #include "drawing.h"
@@ -23,6 +24,23 @@ uint8_t rgb_to_ycbcr(int type, uint8_t r, uint8_t g, uint8_t b) {
 
 uint8_t hexcode_to_ycbcr(int type, int hexcode) {
 	return rgb_to_ycbcr(type, (hexcode & 0xff0000) >> 16, (hexcode & 0x00ff00) >> 8, hexcode & 0x0000ff);
+}
+
+/*
+ * Blend color_a and color_b with a factor of `blend/255`.
+ * The closer `blend` is to 255, the closer the result is to
+ * color_b.
+ */
+int blend_colors(int color_a, int color_b, uint8_t blend) {
+	const uint8_t a[3] = {(color_a & 0xff0000) >> 16, (color_a & 0x00ff00) >> 8, color_a & 0x0000ff};
+	const uint8_t b[3] = {(color_b & 0xff0000) >> 16, (color_b & 0x00ff00) >> 8, color_b & 0x0000ff};
+	double factor = (double)blend / 255;
+	const uint8_t c[3] = {
+		(a[0] * (1 - factor)) + (b[0] * factor),
+		(a[1] * (1 - factor)) + (b[1] * factor),
+		(a[2] * (1 - factor)) + (b[2] * factor),
+	};
+	return (c[0] << 16) + (c[1] << 8) + c[2];
 }
 
 void draw_pixel(AVFrame* frame, int x, int y, int color) {

@@ -13,6 +13,13 @@ uint8_t rgb_to_ycbcr(int type, uint8_t r, uint8_t g, uint8_t b);
 
 void draw_pixel(AVFrame* frame, int x, int y, int color);
 
+/*
+ * Blend color_a and color_b with a factor of `blend/255`.
+ * The closer `blend` is to 255, the closer the result is to
+ * color_b.
+ */
+int blend_colors(int color_a, int color_b, uint8_t blend);
+
 typedef struct {
 	uint32_t x, y, width, height;
 } Rect;

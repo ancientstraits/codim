@@ -5,6 +5,11 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-int exec_lua(const char* file_path);
+typedef struct {
+    lua_State* l;
+    struct {
+        
+    } config;
+} LuaContext;
 
 #endif

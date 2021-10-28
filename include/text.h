@@ -13,6 +13,6 @@ typedef struct {
 TextContext* text_context_init(const char* font_path, size_t font_size, int width, int height);
 void text_context_delete(TextContext* tc);
 
-int draw_text(TextContext* tc, AVFrame* frame, const char* str, int x, int y, int color);
+int draw_text(TextContext* tc, AVFrame* frame, const char* str, int x, int y, int fg, int bg);
 
 #endif // !TEXT_H
