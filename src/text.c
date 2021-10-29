@@ -17,7 +17,7 @@ TextContext* text_context_init(const char *font_path, size_t font_size, int widt
 		return NULL;
 	}
 	// TODO make resolution a parameter
-	if (FT_Set_Char_Size(tc->face, 0, font_size * 64, width, height)) {
+	if (FT_Set_Pixel_Sizes(tc->face, 0, font_size)) {
 		fprintf(stderr, "Failed to set font size\n");
 		return NULL;
 	}
@@ -68,7 +68,7 @@ int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int yp
 			// Newline support
 			pen_x = xpos;
 			printf("PEN_Y: %d -> ", pen_y);
-			pen_y += tc->face->height / 64;
+			pen_y += tc->face->size->metrics.height / 64;
 			printf("%d\n", pen_y);
 			continue;
 		}

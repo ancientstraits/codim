@@ -49,18 +49,21 @@ void draw_pixel(AVFrame* frame, int x, int y, int color) {
 	frame->data[2][(y / 2) * frame->linesize[2] + (x / 2)] = hexcode_to_ycbcr(COLOR_CR, color);
 }
 
-void draw_box(AVFrame *frame, Rect* r, int fg, int bg) {
+void fill_frame(AVFrame* frame, int color){
 	for (uint32_t y = 0; y < frame->height; y++) {
 		for (uint32_t x = 0; x < frame->width; x++) {
-			draw_pixel(frame, x, y, bg);
+			draw_pixel(frame, x, y, color);
 		}
 	}
+}
+
+void draw_box(AVFrame *frame, Rect* r, int color) {
 	if (r == NULL)
 		return;
 
 	for (uint32_t y = r->y; y < r->height; y++) {
 		for (uint32_t x = r->x; x < r->width; x++) {
-			draw_pixel(frame, x, y, fg);
+			draw_pixel(frame, x, y, color);
 		}
 	}
 }
