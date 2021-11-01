@@ -48,4 +48,6 @@ Then, run it:
 codim tutorial.lua -o out.mp4
 ```
 
-This is out.mp4: `[PLACEHOLDER]`
+This is out.mp4:
+https://raw.githubusercontent.com/ancientstraits/assets/master/out%20-%202021-11-01T132402.971.mp4
+
