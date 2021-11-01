@@ -8,7 +8,7 @@ EXEC = main
 all: $(EXEC)
 
 obj:
-	mkdir obj
+	[ -d obj ] ||  mkdir obj
 
 obj/%.o: src/%.c $(DEPS) | obj
 	$(CC) -o $@ -c $< $(CFLAGS)
