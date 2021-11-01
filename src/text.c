@@ -16,25 +16,15 @@ TextContext* text_context_init(const char *font_path, size_t font_size, int widt
 		fprintf(stderr, "Failed to load font face from file %s\n", font_path);
 		return NULL;
 	}
-	// TODO make resolution a parameter
+
 	if (FT_Set_Pixel_Sizes(tc->face, 0, font_size)) {
 		fprintf(stderr, "Failed to set font size\n");
 		return NULL;
 	}
-	// FT_Matrix matrix;
 
-	// const double angle = 10.0;
-	// const double s_a = -1;
-	// const double c_a = 1;
-	// matrix.xx = (FT_Fixed)( 1 * 0x10000L);
-	// matrix.xy = (FT_Fixed)( 0 * 0x10000L);
-	// matrix.yx = (FT_Fixed)( 0 * 0x10000L);
-	// matrix.yy = (FT_Fixed)(-2 * 0x10000L);
-	// matrix.xx = 1 * 0x10000L;
-    // matrix.xy = 0 * 0x10000L;
-    // matrix.yx = 0 * 0x10000L;
-    // matrix.yy = 1 * 0x10000L;
-	// FT_Set_Transform(tc->face, &matrix, NULL);
+	tc->loc.x = 0;
+	tc->loc.y = 0;
+
 	return tc;
 }
 
@@ -44,7 +34,6 @@ void text_context_delete(TextContext *tc) {
 	free(tc);
 }
 
-// CREDIT: https://www.freetype.org/freetype2/docs/tutorial/example1.c
 static void draw_bitmap(FT_Bitmap* bm, AVFrame* frame, int x, int y, int fg, int bg) {
 	int i, j, p, q;
 	const int x_max = x + bm->width;
@@ -59,17 +48,44 @@ static void draw_bitmap(FT_Bitmap* bm, AVFrame* frame, int x, int y, int fg, int
 	}
 }
 
+int draw_single_char(TextContext* tc, AVFrame* frame, char c, int xpos, int ypos, int fg, int bg) {
+	if (c == '\n') {
+		tc->loc.x = xpos;
+		tc->loc.y += tc->face->size->metrics.height / 64;
+		return 0;
+	}
+
+	if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, c), 0)) {
+		fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
+		return 1;
+	}
+	if (FT_Render_Glyph(tc->face->glyph, FT_RENDER_MODE_NORMAL)) {
+		fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
+		return 1;
+	}
+	draw_bitmap(
+		&tc->face->glyph->bitmap,
+		frame,
+		tc->loc.x + tc->face->glyph->bitmap_left,
+		tc->loc.y - tc->face->glyph->bitmap_top,
+		fg,
+		bg
+	);
+	tc->loc.x += tc->face->glyph->advance.x / 64;
+	tc->loc.y += tc->face->glyph->advance.y / 64;
+
+	return 0;
+}
+
 int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int ypos, int fg, int bg) {
 	FT_GlyphSlot slot = tc->face->glyph;
-	int pen_x = xpos;
-	int pen_y = ypos;
+	tc->loc.x = xpos;
+	tc->loc.y = ypos;
 	for (int i = 0; str[i] != '\0'; i++) {
 		if (str[i] == '\n') {
 			// Newline support
-			pen_x = xpos;
-			printf("PEN_Y: %d -> ", pen_y);
-			pen_y += tc->face->size->metrics.height / 64;
-			printf("%d\n", pen_y);
+			tc->loc.x = xpos;
+			tc->loc.y += tc->face->size->metrics.height / 64;
 			continue;
 		}
 		if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, str[i]), 0)) {
@@ -81,11 +97,11 @@ int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int yp
 			return 1;
 		}
 		// printf("FT Info: size: %dx%d", slot->bitmap.rows, slot->bitmap.width);
-		draw_bitmap(&slot->bitmap, frame, pen_x + slot->bitmap_left, pen_y - slot->bitmap_top, fg, bg);
-		printf("bearings: %d, %d", slot->bitmap_left, slot->bitmap_top);
-		pen_x += slot->advance.x / 64;
-		pen_y += slot->advance.y / 64;
-		printf("\nPen: %d, %d\n", pen_x, pen_y);
+		draw_bitmap(&slot->bitmap, frame, tc->loc.x + slot->bitmap_left, tc->loc.y - slot->bitmap_top, fg, bg);
+		tc->loc.x += slot->advance.x / 64;
+		tc->loc.y += slot->advance.y / 64;
 	}
 	return 0;
 }
+
+

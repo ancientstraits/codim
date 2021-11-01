@@ -7,15 +7,6 @@
 #include "filter.h"
 #include "fcutil.h"
 
-#define PIX_FMT AV_PIX_FMT_YUV420P
-
-#define FFERR(fn) \
-	if (fn < 0) \
-		fprintf(stderr, "FFERR @ %d\n", __LINE__)
-
-#define mk(struct_name, ...) (struct_name) {__VA_ARGS__}
-
-
 const char* STR = 
 	"#include <stdio.h>\n"
 	"int main(int argc, char* argv[]) {\n"
@@ -24,7 +15,7 @@ const char* STR =
 	"}"
 ;
 
-int SPEED = 2;
+const int SPEED = 2;
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
@@ -38,30 +29,25 @@ int main(int argc, char *argv[]) {
 	TextContext* tc = text_context_init(str, 20, 600, 600);
 	free(str);
 
-	// TODO is `+1` needed?
-	char iter[strlen(STR) + 1];
+	tc->loc.x = 20;
+	tc->loc.y = 40;
 
-	size_t cursor_loc[2] = {20, 20};
+	const int fontsize = tc->face->size->metrics.height / 64;
 
-	for (size_t i = 0; STR[i] != '\0'; i++) {
-		iter[i] = STR[i];
-		iter[i + 1] = '\0';
-		draw_text(tc, vc->frame, iter, 20, 20, 0xffffff, 0x000000);
-		Rect r = {0, 0, 100, 100};
-		draw_box(vc->frame, &r, 0xffffff);
-		printf("cursor_loc = {%lu, %lu}\n", cursor_loc[0], cursor_loc[1]);
-		draw_box(vc->frame, &r, 0xffffff);
+	for (int i = 0; STR[i]; i++) {
+		draw_single_char(tc, vc->frame, STR[i], 20, 40, 0xffffff, 0x000000);
+		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize}, 0xffffff);
 		for (int j = 0; j < SPEED; j++) {
 			video_context_write_frame(vc);
 		}
+		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize}, 0x000000);
 	}
-	
-	printf("final iter:\n%s\n", iter);
-
 	for (int i = 0; i < 20; i++) {
 		video_context_write_frame(vc);
 	}
+	
 
 	text_context_delete(tc);
+
 	video_context_save_and_delete(vc);
 }

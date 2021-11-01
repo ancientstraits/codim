@@ -61,8 +61,8 @@ void draw_box(AVFrame *frame, Rect* r, int color) {
 	if (r == NULL)
 		return;
 
-	for (uint32_t y = r->y; y < r->height; y++) {
-		for (uint32_t x = r->x; x < r->width; x++) {
+	for (uint32_t y = r->y; y < r->y + r->height; y++) {
+		for (uint32_t x = r->x; x < r->x + r->width; x++) {
 			draw_pixel(frame, x, y, color);
 		}
 	}
