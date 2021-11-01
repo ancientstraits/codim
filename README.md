@@ -49,5 +49,5 @@ codim tutorial.lua -o out.mp4
 ```
 
 This is out.mp4:
-https://user-images.githubusercontent.com/ancientstraits/assets/master/out%20-%202021-11-01T132402.971.mp4
+https://user-images.githubusercontent.com/73802848/139718552-278343ad-6bb8-4c56-b6c6-d42a63470874.mp4
 
