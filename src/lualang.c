@@ -6,12 +6,17 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#include "text.h"
 #include "video.h"
 #include "drawing.h"
-
+#include "fcutil.h"
 #include "lualang.h"
 
-static int conv(const char* str) {
+#define FONT_STR_MAX 128
+
+int current_color = 0;
+
+static int hexstrtoi(const char* str) {
     if (str[0] != '#')
         return 0;
     switch (strlen(str)) {
@@ -26,6 +31,13 @@ static int conv(const char* str) {
     }
 }
 
+static int lua_get_table_bool(lua_State* L, const char* str) {
+	lua_getfield(L, 1, str);
+	if (lua_isboolean(L, -1))
+		return lua_toboolean(L, -1);
+	else
+		return 0;
+}
 static int lua_get_table_int(lua_State* L, const char* str) {
 	lua_getfield(L, 1, str);
 	if (lua_isinteger(L, -1))
@@ -55,12 +67,6 @@ static const char* lua_get_table_str_else(lua_State* L, const char* str, const c
 		return or;
 }
 
-typedef struct {
-	int width;
-	int height;
-} VideoOpts;
-
-
 VideoContext* vc = NULL;
 static int codim_set_video_opts(lua_State* L) {
 	if (!lua_istable(L, -1))
@@ -78,8 +84,9 @@ static int codim_set_video_opts(lua_State* L) {
 static int codim_fill_frame(lua_State* L) {
 	if (!vc)
 		return 0;	
-	int color = conv(luaL_checkstring(L, 1));
+	int color = hexstrtoi(luaL_checkstring(L, 1));
 	fill_frame(vc->frame, color);
+	current_color = color;
 	return 0;
 }
 
@@ -93,7 +100,7 @@ static int codim_draw_rect(lua_State* L) {
 			.width  = lua_get_table_int(L, "width"),
 			.height = lua_get_table_int(L, "height"),
 		},
-		conv(lua_get_table_str_else(L, "color", "#fff")));
+		hexstrtoi(lua_get_table_str_else(L, "color", "#fff")));
 	return 0;
 }
 
@@ -106,10 +113,58 @@ static int codim_wait(lua_State* L) {
 	return 0;
 }
 
+int codim_font_mono(lua_State* L) {
+	char font_name[FONT_STR_MAX];
+	findMonospaceFont(font_name);
+	lua_pushstring(L, font_name);
+	return 1;
+}
+
+int codim_draw_text(lua_State* L) {
+	if (!vc)
+		return 0;
+	// TODO does this actually work?
+	const char* font_file = lua_get_table_str(L, "font_file");
+	if (!font_file) {
+		char buf[FONT_STR_MAX];
+		findMonospaceFont(buf);
+		font_file = buf;
+	}
+
+	TextContext* tc = text_context_init(font_file, 
+	lua_get_table_int_else(L, "font_size", 20));
+
+	if (lua_get_table_bool(L, "animated")) {
+		const char* str = lua_get_table_str(L, "text");
+		const int x = lua_get_table_int(L, "x");
+		const int y = lua_get_table_int(L, "y") + tc->face->size->metrics.height / 64;
+		const int speed = lua_get_table_int_else(L, "animation_speed", 2);
+		tc->loc.x = x;
+		tc->loc.y = y;
+		for (int i = 0; str[i]; i++) {
+			draw_single_char(tc, vc->frame, str[i], x, y,
+			hexstrtoi(lua_get_table_str(L, "color")), current_color);
+			for (int j = 0; j < speed; j++)
+				video_context_write_frame(vc);
+		}
+	} else {
+		draw_text(tc, vc->frame,
+			lua_get_table_str(L, "text"),
+			lua_get_table_int(L, "x"),
+			lua_get_table_int(L, "y"),
+			hexstrtoi(lua_get_table_str(L, "color")),
+			current_color);
+	}
+	text_context_delete(tc);
+	return 0;
+}
+
 static const struct luaL_Reg codim_lib[] = {
 	{"set_video_opts", codim_set_video_opts},
 	{"fill_frame", codim_fill_frame},
 	{"draw_rect", codim_draw_rect},
+	{"font_mono", codim_font_mono},
+	{"draw_text", codim_draw_text},
 	{"wait", codim_wait},
 	{NULL, NULL},
 };
@@ -143,7 +198,7 @@ int eval_lua_script(const char* filename, const char* lib_name) {
 		video_context_save_and_delete(vc);
 
 	lua_close(L);
-	return 0;
+	return 1;
 }
 
 

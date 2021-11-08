@@ -57,6 +57,7 @@ void fill_frame(AVFrame* frame, int color){
 	}
 }
 
+
 void draw_box(AVFrame *frame, Rect* r, int color) {
 	if (r == NULL)
 		return;
@@ -67,4 +68,3 @@ void draw_box(AVFrame *frame, Rect* r, int color) {
 		}
 	}
 }
-

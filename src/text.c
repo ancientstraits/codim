@@ -6,14 +6,14 @@
 #include "drawing.h"
 #include "text.h"
 
-TextContext* text_context_init(const char *font_path, size_t font_size, int width, int height) {
+TextContext* text_context_init(const char *font_path, size_t font_size) {
 	TextContext* tc = malloc(sizeof(TextContext));
 	if (FT_Init_FreeType(&tc->lib)) {
 		fprintf(stderr, "Could not initialize FreeType\n");
 		return NULL;
 	}
 	if (FT_New_Face(tc->lib, font_path, 0, &tc->face)) {
-		fprintf(stderr, "Failed to load font face from file %s\n", font_path);
+		fprintf(stderr, "Failed to load font face from the font path\n");
 		return NULL;
 	}
 
@@ -80,7 +80,7 @@ int draw_single_char(TextContext* tc, AVFrame* frame, char c, int xpos, int ypos
 int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int ypos, int fg, int bg) {
 	FT_GlyphSlot slot = tc->face->glyph;
 	tc->loc.x = xpos;
-	tc->loc.y = ypos;
+	tc->loc.y = ypos + (tc->face->size->metrics.height / 64);
 	for (int i = 0; str[i] != '\0'; i++) {
 		if (str[i] == '\n') {
 			// Newline support
@@ -103,5 +103,3 @@ int draw_text(TextContext* tc, AVFrame* frame, const char* str, int xpos, int yp
 	}
 	return 0;
 }
-
-
