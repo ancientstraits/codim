@@ -5,11 +5,6 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-typedef struct {
-    lua_State* l;
-    struct {
-        
-    } config;
-} LuaContext;
+int eval_lua_script(const char* filename, const char* lib_name);
 
 #endif
