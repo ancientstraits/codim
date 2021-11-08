@@ -16,36 +16,35 @@ int main() {
 }
 ```
 
-The tutorial itself will be configured in Lua or Python:
+The tutorial itself will be configured in Lua:
 
-Lua:
 `tutorial.lua`
 ```lua
-Tutorial = {
-    files = {"tutorial.c"}
-    -- The config table is used to configure the appearance of the video.
-    config = {
-        -- The video size is {width, height}
-        font = "/usr/share/fonts/TTF/FiraCode.ttf",
-        video_size = {1920, 1080},
-        -- This table will change the colorscheme.
-        colors = {
-            bg = "#330033",
-        },
-    },
-    -- anim is a function. It can be built with codim.template, or you can make your own.
-    anim = codim.template.each_line({
-        -- type_speed is in words per minute (wpm)
-        type_speed = 100,
-        -- wait x seconds before continuing to next line
-        line_wait = 3,
-    }),
+local cm = require("codim")
+
+cm.set_video_opts {
+	width  = 1920,
+	height = 1080,
+	output = "out.mp4",
+	fps    = 24,
 }
+
+cm.fill_frame("#fff")
+
+cm.draw_rect {
+	x      = 10,
+	y      = 10,
+	width  = 20,
+	height = 20,
+	color  = "#0055ff",
+}
+
+cm.wait(300)
 ```
 
 Then, run it:
 ```sh
-codim tutorial.lua -o out.mp4
+codim tutorial.lua
 ```
 
 This is out.mp4:
