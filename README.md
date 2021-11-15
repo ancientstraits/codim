@@ -16,30 +16,51 @@ int main() {
 }
 ```
 
-The tutorial itself will be configured in Lua:
+The tutorial itself will be configured in lua:
 
 `tutorial.lua`
 ```lua
 local cm = require("codim")
 
 cm.set_video_opts {
-	width  = 1920,
-	height = 1080,
-	output = "out.mp4",
-	fps    = 24,
+    width  = 1920,
+    height = 1080,
+    output = "out.mp4",
+    fps    = 24,
 }
 
-cm.fill_frame("#fff")
+cm.fill_frame("#000")
 
 cm.draw_rect {
-	x      = 10,
-	y      = 10,
-	width  = 20,
-	height = 20,
-	color  = "#0055ff",
+    x      = 10,
+    y      = 10,
+    width  = 1920 - 20,
+    height = 20,
+    color  = "#0055ff",
+}
+
+-- read `test.c`
+local function read_file(file_path)
+    local f = io.open(file_path, "r")
+    local content = f:read("*all")
+    f:close()
+    return content
+end
+
+cm.draw_text {
+    font_file = cm.font_mono(),
+    font_size = 30,
+    text = read_file("test.c"),
+    x = 10,
+    y = 20,
+    color = "#00FF00",
+
+    animated = true,
+    animation_speed = 1,
 }
 
 cm.wait(300)
+
 ```
 
 Then, run it:
@@ -49,5 +70,4 @@ codim tutorial.lua
 
 This is out.mp4:
 
-https://user-images.githubusercontent.com/73802848/139718552-278343ad-6bb8-4c56-b6c6-d42a63470874.mp4
-
+https://user-images.githubusercontent.com/73802848/141844281-8a2483ae-763c-4d92-82d4-ed6f7f5f5541.mp4
