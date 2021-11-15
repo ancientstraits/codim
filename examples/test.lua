@@ -7,12 +7,12 @@ cm.set_video_opts {
     fps    = 24,
 }
 
-cm.fill_frame("#fff")
+cm.fill_frame("#000")
 
 cm.draw_rect {
     x      = 10,
     y      = 10,
-    width  = 20,
+    width  = 1920 - 20,
     height = 20,
     color  = "#0055ff",
 }

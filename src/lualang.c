@@ -11,6 +11,7 @@
 #include "drawing.h"
 #include "fcutil.h"
 #include "lualang.h"
+#include "c_lex.h"
 
 #define FONT_STR_MAX 128
 
@@ -122,6 +123,17 @@ int codim_font_mono(lua_State* L) {
 	return 1;
 }
 
+int c_lex_to_color[] = {
+    [C_LEX_NONE]     = 0xffffff,
+    [C_LEX_DELIM]    = 0xff0000,
+    [C_LEX_STR]      = 0x00ff00,
+    [C_LEX_OPERATOR] = 0x0000ff,
+    [C_LEX_VAR]      = 0xffff00,
+    [C_LEX_TYPE]     = 0xff00ff,
+    [C_LEX_NUM]      = 0x00ffff,
+};
+
+
 int codim_draw_text(lua_State* L) {
 	if (!vc)
 		return 0;
@@ -152,7 +164,7 @@ int codim_draw_text(lua_State* L) {
 		tc->loc.y = y;
 		for (int i = 0; str[i]; i++) {
 			draw_single_char(tc, vc->frame, str[i], x, y,
-			color /*0x00ff00*/, current_color);
+			c_lex_to_color[c_lex(str[i])], current_color);
 			for (int j = 0; j < speed; j++)
 				video_context_write_frame(vc);
 		}
