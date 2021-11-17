@@ -8,17 +8,15 @@
 #include "filter.h"
 #include "fcutil.h"
 
-const char* STR = 
-	"#include <stdio.h>\n"
-	"int main(int argc, char* argv[]) {\n"
-	"    printf(\"Hello World!\\n\")\n"
-	"    return 0;\n"
-	"}"
-;
+const char *STR = "#include <stdio.h>\n"
+				  "int main(int argc, char* argv[]) {\n"
+				  "    printf(\"Hello World!\\n\")\n"
+				  "    return 0;\n"
+				  "}";
 
 const int SPEED = 2;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s [LUA_SCRIPT]\n", argv[0]);
 		return 1;
@@ -45,16 +43,15 @@ int main(int argc, char* argv[]) {
 
 // 	for (int i = 0; STR[i]; i++) {
 // 		draw_single_char(tc, vc->frame, STR[i], 20, 40, 0xffffff, 0x000000);
-// 		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize}, 0xffffff);
-// 		for (int j = 0; j < SPEED; j++) {
-// 			video_context_write_frame(vc);
+// 		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize},
+// 0xffffff); 		for (int j = 0; j < SPEED; j++) { 			video_context_write_frame(vc);
 // 		}
-// 		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize}, 0x000000);
+// 		draw_box(vc->frame, &(Rect){tc->loc.x, tc->loc.y - fontsize, 5, fontsize},
+// 0x000000);
 // 	}
 // 	for (int i = 0; i < 20; i++) {
 // 		video_context_write_frame(vc);
 // 	}
-	
 
 // 	text_context_delete(tc);
 

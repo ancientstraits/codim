@@ -4,6 +4,6 @@
 /*
  * Find a monospace font with fontconfig.
  */
-int findMonospaceFont(char* buf);
+int findMonospaceFont(char *buf);
 
 #endif
