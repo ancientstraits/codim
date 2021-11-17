@@ -31,6 +31,7 @@ cm.set_video_opts {
 
 cm.fill_frame("#000")
 
+-- draw an example rectangle
 cm.draw_rect {
     x      = 10,
     y      = 10,
@@ -39,7 +40,7 @@ cm.draw_rect {
     color  = "#0055ff",
 }
 
--- read `test.c`
+
 local function read_file(file_path)
     local f = io.open(file_path, "r")
     local content = f:read("*all")
@@ -49,18 +50,17 @@ end
 
 cm.draw_text {
     font_file = cm.font_mono(),
-    font_size = 30,
+    font_size = 50,
     text = read_file("test.c"),
     x = 10,
     y = 20,
     color = "#00FF00",
 
     animated = true,
-    animation_speed = 1,
+    animation_speed = 3,
 }
 
-cm.wait(300)
-
+cm.wait(50)
 ```
 
 Then, run it:
@@ -70,4 +70,4 @@ codim tutorial.lua
 
 This is out.mp4:
 
-https://user-images.githubusercontent.com/73802848/141844281-8a2483ae-763c-4d92-82d4-ed6f7f5f5541.mp4
+https://user-images.githubusercontent.com/73802848/141845203-05008667-2188-41f4-98d6-d83a44095723.mp4

@@ -27,14 +27,14 @@ end
 
 cm.draw_text {
     font_file = cm.font_mono(),
-    font_size = 30,
+    font_size = 50,
     text = read_file("test.c"),
     x = 10,
     y = 20,
     color = "#00FF00",
 
     animated = true,
-    animation_speed = 1,
+    animation_speed = 3,
 }
 
-cm.wait(300)
+cm.wait(50)
