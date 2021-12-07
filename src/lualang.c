@@ -208,7 +208,19 @@ int eval_lua_script(const char *filename, const char *lib_name) {
 	lua_setfield(L, -2, lib_name);
 
 	luaL_loadfile(L, filename);
-	lua_pcall(L, 0, LUA_MULTRET, 0);
+	int x = lua_pcall(L, 0, LUA_MULTRET, 0);
+	switch (x) {
+	case 0: break;
+	default: {
+		lua_Debug ar;
+		lua_getstack(L, 1, &ar);
+		lua_getinfo(L, "nSl", &ar);
+		int line = ar.currentline;
+		fprintf(stderr, "Failed to execute lua: \n%s:%d: %s\n",
+			filename, line, lua_tostring(L, -1));
+		exit(1);
+		}
+	}
 	if (vc)
 		video_context_save_and_delete(vc);
 
