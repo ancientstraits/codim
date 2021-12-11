@@ -151,7 +151,7 @@ int codim_draw_text(lua_State *L) {
 
 		const int x = lua_get_table_int(L, "x");
 		const int y =
-			lua_get_table_int(L, "y") + tc->face->size->metrics.height / 64;
+			lua_get_table_int(L, "y") + tc->newline;
 
 		const int speed = lua_get_table_int_else(L, "animation_speed", 2);
 

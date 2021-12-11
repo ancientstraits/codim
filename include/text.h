@@ -20,12 +20,17 @@ typedef struct {
 } FontChar;
 
 typedef struct {
-	FT_Library lib;
-	FT_Face face;
+	// FT_Library lib;
+	// FT_Face face;
 	struct {
 		int x;
 		int y;
 	} loc;
+	// struct {
+	// 	int x;
+	// 	int y;
+	// } advance;
+	int newline;
 	FontChar chars[256];
 } TextContext;
 

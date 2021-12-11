@@ -22,7 +22,9 @@ int make_char(FontChar *fc, FT_Face face, char c) {
 	fc->size.x = face->glyph->bitmap.width;
 	fc->size.y = face->glyph->bitmap.rows;
 	fc->pitch = face->glyph->bitmap.pitch;
-	fc->buf = face->glyph->bitmap.buffer;
+
+	fc->buf = malloc(fc->size.x * fc->size.y);
+	memcpy(fc->buf, face->glyph->bitmap.buffer, fc->size.x * fc->size.y);
 
 	return 1;
 }
@@ -37,17 +39,19 @@ void loop_font_chars(FontChar fc[256], FT_Face face) {
 TextContext *text_context_init(const char *font_path, size_t font_size) {
 	TextContext *tc = malloc(sizeof(TextContext));
 
-	if (FT_Init_FreeType(&tc->lib)) {
+	FT_Library lib;
+	if (FT_Init_FreeType(&lib)) {
 		fprintf(stderr, "Could not initialize FreeType\n");
 		return NULL;
 	}
-
-	if (FT_New_Face(tc->lib, font_path, 0, &tc->face)) {
+	
+	FT_Face face;
+	if (FT_New_Face(lib, font_path, 0, &face)) {
 		fprintf(stderr, "Failed to load font face from the font path\n");
 		return NULL;
 	}
 
-	if (FT_Set_Pixel_Sizes(tc->face, 0, font_size)) {
+	if (FT_Set_Pixel_Sizes(face, 0, font_size)) {
 		fprintf(stderr, "Failed to set font size\n");
 		return NULL;
 	}
@@ -55,14 +59,19 @@ TextContext *text_context_init(const char *font_path, size_t font_size) {
 	tc->loc.x = 0;
 	tc->loc.y = 0;
 
-	loop_font_chars(tc->chars, tc->face);
+	tc->newline = face->size->metrics.height / 64;
+
+	loop_font_chars(tc->chars, face);
+
+	FT_Done_Face(face);
+	FT_Done_FreeType(lib);
 
 	return tc;
 }
 
 void text_context_delete(TextContext *tc) {
-	FT_Done_Face(tc->face);
-	FT_Done_FreeType(tc->lib);
+	for (unsigned char c = 0; c < 255; c++)
+		free(tc->chars[c].buf);
 	free(tc);
 }
 
@@ -81,62 +90,54 @@ static void draw_font_char(FontChar *fc, AVFrame *frame, int x, int y, int fg,
 					   blend_colors(bg, fg, fc->buf[q * fc->pitch + p]));
 		}
 	}
+
 }
 
 int draw_single_char(TextContext *tc, AVFrame *frame, char c, int xpos,
 					 int ypos, int fg, int bg) {
 	if (c == '\n') {
 		tc->loc.x = xpos;
-		tc->loc.y += tc->face->size->metrics.height / 64;
+		tc->loc.y += tc->newline;
 		return 0;
 	}
 
-	if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, c), 0)) {
-		fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
-		return 1;
-	}
-	if (FT_Render_Glyph(tc->face->glyph, FT_RENDER_MODE_NORMAL)) {
-		fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
-		return 1;
-	}
+	// if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, c), 0)) {
+	// 	fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
+	// 	return 1;
+	// }
+	// if (FT_Render_Glyph(tc->face->glyph, FT_RENDER_MODE_NORMAL)) {
+	// 	fprintf(stderr, "Failed to load character in FreeType: '%c'\n", c);
+	// 	return 1;
+	// }
+
 	draw_font_char(&tc->chars[(int)c], frame,
-				   tc->loc.x + tc->face->glyph->bitmap_left,
-				   tc->loc.y - tc->face->glyph->bitmap_top, fg, bg);
-	tc->loc.x += tc->face->glyph->advance.x / 64;
-	tc->loc.y += tc->face->glyph->advance.y / 64;
+				   tc->loc.x + tc->chars[(int)c].bearing.x,
+				   tc->loc.y - tc->chars[(int)c].bearing.y, fg, bg);
+	tc->loc.x += tc->chars[(int)c].advance/* / 64 */;
+	// tc->loc.y += tc->face->glyph->advance.y / 64;
 
 	return 0;
 }
 
 int draw_text(TextContext *tc, AVFrame *frame, const char *str, int xpos,
 			  int ypos, int fg, int bg) {
-	FT_GlyphSlot slot = tc->face->glyph;
+	// FT_GlyphSlot slot = tc->face->glyph;
 	tc->loc.x = xpos;
-	tc->loc.y = ypos + (tc->face->size->metrics.height / 64);
+	tc->loc.y = ypos + tc->newline;
 	for (int i = 0; str[i] != '\0'; i++) {
 		if (str[i] == '\n') {
 			// Newline support
 			tc->loc.x = xpos;
-			tc->loc.y += tc->face->size->metrics.height / 64;
+			tc->loc.y += tc->newline;
 			continue;
-		}
-		if (FT_Load_Glyph(tc->face, FT_Get_Char_Index(tc->face, str[i]), 0)) {
-			fprintf(stderr, "Failed to load character in FreeType: '%c'\n",
-					str[i]);
-			return 1;
-		}
-		if (FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL)) {
-			fprintf(stderr, "Failed to load character in FreeType: '%c'\n",
-					str[i]);
-			return 1;
 		}
 		// printf("FT Info: size: %dx%d", slot->bitmap.rows,
 		// slot->bitmap.width);
 		draw_font_char(&tc->chars[(int)str[i]], frame,
-					   tc->loc.x + slot->bitmap_left,
-					   tc->loc.y - slot->bitmap_top, fg, bg);
-		tc->loc.x += slot->advance.x / 64;
-		tc->loc.y += slot->advance.y / 64;
+					   tc->loc.x + tc->chars[(int)str[i]].bearing.x,
+					   tc->loc.y - tc->chars[(int)str[i]].bearing.y, fg, bg);
+		tc->loc.x += tc->chars[(int)str[i]].advance;
+		// tc->loc.y += slot->advance.y / 64;
 	}
 	return 0;
 }
