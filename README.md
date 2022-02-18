@@ -30,6 +30,7 @@ w:open('out.mp4')
 local bg = cm.rect.new(0, 0, 600, 400, cm.color.hex('00a0a0'))
 w:add({bg:wait(12)}, 0)
 
+-- text
 w:add({cm.text.new([[
 int isImproving = 1;
 const AVRational difficulty = {1000, 1};
@@ -43,6 +44,7 @@ w:play()
 
 w:close()
 
+-- text to speech
 cm.tts.say('out.mp4', {
     {'Much progress has been made on codim since the last update.', 0},
     {'When using C, I tried to add audio support, but I kept encountering problems with the FFmpeg C API.', 5},
