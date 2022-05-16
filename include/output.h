@@ -12,6 +12,7 @@
 typedef struct OutputContext {
     int has_audio, has_video;
     AVFormatContext* fc;
+    const char* filename;
 
     AVCodec* ac;
     AVCodecContext* acc;
@@ -20,7 +21,7 @@ typedef struct OutputContext {
     AVFrame* af;
     AVFrame* afd;
     SwrContext* aconv;
-    int apts, aenc, anbs;
+    int apts, aenc, anbs, asc;
 
     AVCodec* vc;
     AVCodecContext* vcc;
@@ -46,9 +47,11 @@ typedef enum OutputType {
 OutputContext* output_context_create(
     const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo);
 void output_context_open(OutputContext* oc);
+int output_context_is_open(OutputContext* oc);
+double output_context_get_seconds(OutputContext* oc);
 OutputType output_context_get_encode_type(OutputContext* oc);
 void output_context_encode(OutputContext* oc, OutputType ot);
 void output_context_close(OutputContext* oc);
 void output_context_destroy(OutputContext* oc);
 
-#endif
+#endif // !OUTPUT_H

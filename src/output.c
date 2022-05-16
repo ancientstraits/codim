@@ -1,19 +1,13 @@
+#include <stdlib.h>
 #include "output.h"
-#include "libavcodec/avcodec.h"
-#include "libavcodec/codec.h"
-#include "libavcodec/packet.h"
-#include "libavformat/avformat.h"
-#include "libavutil/channel_layout.h"
-#include "libavutil/frame.h"
-#include "libavutil/pixfmt.h"
-#include "libavutil/samplefmt.h"
-#include "libswresample/swresample.h"
 
 OutputContext* output_context_create(
     const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo) {
 
     OutputContext* oc = calloc(1, sizeof *oc);
     avformat_alloc_output_context2(&oc->fc, NULL, NULL, filename);
+
+    oc->filename = filename;
 
     // !! just makes it 1 or 0, just because
     oc->has_audio = !!ao;
@@ -49,8 +43,24 @@ OutputContext* output_context_create(
     return oc;
 }
 
-#warning TODO
 void output_context_destroy(OutputContext *oc) {
+    av_write_trailer(oc->fc);
+
+	avcodec_free_context(&oc->vcc);
+	av_frame_free(&oc->vf);
+	av_packet_free(&oc->vp);
+
+	avcodec_free_context(&oc->acc);
+	av_frame_free(&oc->afd);
+	av_frame_free(&oc->af);
+	av_packet_free(&oc->ap);
+	swr_free(&oc->aconv);
+
+	if (!(oc->fc->oformat->flags & AVFMT_NOFILE))
+		avio_closep(&oc->fc->pb);
+
+	avformat_free_context(oc->fc);
+
     free(oc);
 }
 
@@ -106,20 +116,97 @@ void output_context_open(OutputContext* oc) {
         avcodec_parameters_from_context(oc->as->codecpar, oc->acc);
 
         oc->aconv = create_swr_context(oc->acc);
+
+        oc->aenc = 1;
     }
 
     if (oc->has_video) {
         avcodec_open2(oc->vcc, oc->vc, NULL);
         oc->vf = create_video_frame(oc->vcc);
         avcodec_parameters_from_context(oc->vs->codecpar, oc->vcc);
+
+        oc->venc = 1;
     }
 
-    av_dump_format(oc->fc, 0, NULL, 1);
+    av_dump_format(oc->fc, 0, oc->filename, 1);
+
+    if (!(oc->fc->oformat->flags & AVFMT_NOFILE))
+        avio_open(&oc->fc->pb, oc->filename, AVIO_FLAG_WRITE);
+
+    if (avformat_write_header(oc->fc, NULL) < 0)
+        exit(1);
+}
+
+int output_context_is_open(OutputContext* oc) {
+    return oc->aenc || oc->venc;
+}
+
+OutputType output_context_get_encode_type(OutputContext* oc) {
+    return (oc->venc && (!oc->aenc || av_compare_ts(
+        oc->vpts, oc->vcc->time_base, oc->apts, oc->acc->time_base
+    ) <= 0)) ? OUTPUT_TYPE_VIDEO : OUTPUT_TYPE_AUDIO;
+}
+
+double output_context_get_seconds(OutputContext* oc) {
+    if (oc->has_audio)
+        return av_q2d(oc->acc->time_base) * oc->apts;
+    else
+        return av_q2d(oc->vcc->time_base) * oc->vpts;
+}
+
+static int write_frame(AVFormatContext* fc,
+    AVCodecContext* cc, AVStream* s, AVFrame* f, AVPacket* p) {
+
+    avcodec_send_frame(cc, f);
+
+    int ret;
+    while ((ret = avcodec_receive_packet(cc, p)) >= 0) {
+        av_packet_rescale_ts(p, cc->time_base, s->time_base);
+        p->stream_index = s->index;
+        ret = av_interleaved_write_frame(fc, p);
+    }
+
+    return ret != AVERROR_EOF;
+}
+
+static void output_context_encode_video(OutputContext* oc) {
+    if (oc->vf)
+        oc->vf->pts = oc->vpts++;
+
+    oc->venc = write_frame(oc->fc, oc->vcc, oc->vs, oc->vf, oc->vp);
+}
+
+static void output_context_encode_audio(OutputContext* oc) {
+    if (oc->vf) {
+        oc->afd->pts = oc->apts;
+        oc->apts += oc->anbs;
+
+        int anbsd = av_rescale_rnd(
+            swr_get_delay(oc->aconv, oc->acc->sample_rate) + oc->anbs,
+            oc->acc->sample_rate, oc->acc->sample_rate, AV_ROUND_UP
+        );
+        swr_convert(oc->aconv, oc->af->data, anbsd,
+            (const uint8_t**)oc->afd->data, oc->anbs
+        );
+        oc->af->pts = av_rescale_q(
+            oc->asc,
+            (AVRational){1, oc->acc->sample_rate},
+            oc->acc->time_base
+        );
+        oc->asc += anbsd;
+    }
+
+    oc->aenc = write_frame(oc->fc, oc->acc, oc->as, oc->af, oc->ap);
 }
 
 void output_context_encode(OutputContext* oc, OutputType ot) {
-    if (ot == OUTPUT_TYPE_AUDIO) {
-        avcodec_send_frame(oc->vcc, oc->vf);
-        
-    }
+    if (ot == OUTPUT_TYPE_AUDIO)
+        return output_context_encode_audio(oc);
+    else if (ot == OUTPUT_TYPE_VIDEO)
+        return output_context_encode_video(oc);
+}
+
+void output_context_close(OutputContext* oc) {
+    oc->vf = NULL;
+    oc->af = NULL;
 }
