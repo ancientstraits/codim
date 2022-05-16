@@ -38,11 +38,16 @@ typedef struct OutputVideoOpts {
     int width, height, fps;
 } OutputVideoOpts;
 
+typedef enum OutputType {
+    OUTPUT_TYPE_AUDIO,
+    OUTPUT_TYPE_VIDEO,
+} OutputType;
+
 OutputContext* output_context_create(
     const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo);
 void output_context_open(OutputContext* oc);
-void output_context_encode_audio(OutputContext* oc);
-void output_context_encode_video(OutputContext* oc);
+OutputType output_context_get_encode_type(OutputContext* oc);
+void output_context_encode(OutputContext* oc, OutputType ot);
 void output_context_close(OutputContext* oc);
 void output_context_destroy(OutputContext* oc);
 

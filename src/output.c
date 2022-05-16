@@ -117,11 +117,9 @@ void output_context_open(OutputContext* oc) {
     av_dump_format(oc->fc, 0, NULL, 1);
 }
 
-void output_context_close(OutputContext* oc) {
-}
-
-void output_context_encode_audio(OutputContext *oc) {
-}
-
-void output_context_encode_video(OutputContext *oc) {
+void output_context_encode(OutputContext* oc, OutputType ot) {
+    if (ot == OUTPUT_TYPE_AUDIO) {
+        avcodec_send_frame(oc->vcc, oc->vf);
+        
+    }
 }
