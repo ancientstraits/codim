@@ -21,33 +21,31 @@ int main() {
     while (output_context_is_open(oc)) {
         if (output_context_get_seconds(oc) >= 10.0)
             output_context_close(oc);
+
         if (output_context_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
-            if (oc->vf) {
-                for (int i = 0; i < oc->vf->height; i++) {
-                    for (int j = 0; j < oc->vf->width; j++) {
-                        oc->vf->data[0][(i * oc->vf->linesize[0]) + j] = 0;
-                    }
-                }
-                for (int i = 0; i < oc->vf->height / 2; i++) {
-                    for (int j = 0; j < oc->vf->width / 2; j++) {
-                        oc->vf->data[1][(i * oc->vf->linesize[1]) + j] = j;
-                        oc->vf->data[2][(i * oc->vf->linesize[2]) + j] = i;
-                    }
+            for (int i = 0; i < oc->vf->height; i++) {
+                for (int j = 0; j < oc->vf->width; j++) {
+                    oc->vf->data[0][(i * oc->vf->linesize[0]) + j] = 0;
                 }
             }
-            output_context_encode(oc, OUTPUT_TYPE_VIDEO);
+            for (int i = 0; i < oc->vf->height / 2; i++) {
+                for (int j = 0; j < oc->vf->width / 2; j++) {
+                    oc->vf->data[1][(i * oc->vf->linesize[1]) + j] = (j + oc->vpts) % 256;
+                    oc->vf->data[2][(i * oc->vf->linesize[2]) + j] = (i + oc->vpts) % 256;
+                }
+            }
+
+            output_context_encode_video(oc);
         } else {
-            if (oc->afd) {
-                int16_t *data = (int16_t *)oc->afd->data[0];
-                for (int i = 0; i < oc->afd->nb_samples; i++) {
-                    int v = sin(at) * 10000;
-                    for (int j = 0; j < oc->acc->channels; j++)
-                        *data++ = v;
-                    at += atincr;
-                    atincr += atincr2;
-                }
+            int16_t *data = (int16_t *)oc->afd->data[0];
+            for (int i = 0; i < oc->afd->nb_samples; i++) {
+                int v = sin(at) * 10000;
+                for (int j = 0; j < oc->acc->channels; j++)
+                    *data++ = v;
+                at += atincr;
+                atincr += atincr2;
             }
-            output_context_encode(oc, OUTPUT_TYPE_AUDIO);
+            output_context_encode_audio(oc);
         }
     }
 

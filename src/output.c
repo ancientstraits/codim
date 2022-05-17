@@ -44,8 +44,6 @@ OutputContext* output_context_create(
 }
 
 void output_context_destroy(OutputContext *oc) {
-    av_write_trailer(oc->fc);
-
 	avcodec_free_context(&oc->vcc);
 	av_frame_free(&oc->vf);
 	av_packet_free(&oc->vp);
@@ -169,14 +167,14 @@ static int write_frame(AVFormatContext* fc,
     return ret != AVERROR_EOF;
 }
 
-static void output_context_encode_video(OutputContext* oc) {
+void output_context_encode_video(OutputContext* oc) {
     if (oc->vf)
         oc->vf->pts = oc->vpts++;
 
     oc->venc = write_frame(oc->fc, oc->vcc, oc->vs, oc->vf, oc->vp);
 }
 
-static void output_context_encode_audio(OutputContext* oc) {
+void output_context_encode_audio(OutputContext* oc) {
     if (oc->vf) {
         oc->afd->pts = oc->apts;
         oc->apts += oc->anbs;
@@ -199,14 +197,17 @@ static void output_context_encode_audio(OutputContext* oc) {
     oc->aenc = write_frame(oc->fc, oc->acc, oc->as, oc->af, oc->ap);
 }
 
-void output_context_encode(OutputContext* oc, OutputType ot) {
-    if (ot == OUTPUT_TYPE_AUDIO)
-        return output_context_encode_audio(oc);
-    else if (ot == OUTPUT_TYPE_VIDEO)
-        return output_context_encode_video(oc);
-}
-
 void output_context_close(OutputContext* oc) {
     oc->vf = NULL;
     oc->af = NULL;
+
+    // flush everything so that all the frames are written
+    while (output_context_is_open(oc)) {
+        if (output_context_get_encode_type(oc) == OUTPUT_TYPE_VIDEO)
+            output_context_encode_video(oc);
+        else
+            output_context_encode_audio(oc);
+    }
+
+    av_write_trailer(oc->fc);
 }
