@@ -26,7 +26,7 @@ typedef struct OutputContext {
     // Audio Components
 
     // The audio codec.
-    AVCodec* ac;
+    const AVCodec* ac;
     // The audio codec context.
     AVCodecContext* acc;
     // The audio stream.
@@ -52,7 +52,7 @@ typedef struct OutputContext {
     // Video Components
 
     // The video codec.
-    AVCodec* vc;
+    const AVCodec* vc;
     // The video codec context.
     AVCodecContext* vcc;
     // The video stream.
@@ -84,27 +84,42 @@ typedef struct OutputVideoOpts {
 // @param filename - The name of the file to write to.
 // @param ao - The audio options, or `NULL` if audio is not being encoded.
 // @param vo - The video options, or `NULL` if video is not being encoded.
-OutputContext* output_context_create(
+OutputContext* output_create(
     const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo);
 
 // Opens the file and writes a header to it.
 // @param[inout] oc - the context to modify
-void output_context_open(OutputContext* oc);
+void output_open(OutputContext* oc);
 // Returns `1` if the context is currently open, or `0` otherwise.
-// @param[inout] oc - the context to modify
-int output_context_is_open(OutputContext* oc);
+// @param[in] oc - the context to inspect
+int output_is_open(OutputContext* oc);
+// Returns the time that `oc` is currently in.
+// @param[in] oc - the context to inspect
+double output_get_seconds(OutputContext* oc);
 
-double output_context_get_seconds(OutputContext* oc);
-
+// `OutputType` specifies whether a stream's type is audio or video.
 typedef enum OutputType {
+    // The stream's type is audio.
     OUTPUT_TYPE_AUDIO,
+    // The stream's type is video.
     OUTPUT_TYPE_VIDEO,
 } OutputType;
-OutputType output_context_get_encode_type(OutputContext* oc);
+// Returns whether the next frame that should be encoded is an audio
+// or video stream.
+// @param[in] oc - the context to inspect
+OutputType output_get_encode_type(OutputContext* oc);
 
-void output_context_encode_audio(OutputContext* oc);
-void output_context_encode_video(OutputContext* oc);
-void output_context_close(OutputContext* oc);
-void output_context_destroy(OutputContext* oc);
+// Encodes an audio frame.
+// @param[inout] oc - the context to modify
+void output_encode_audio(OutputContext* oc);
+// Encodes an video frame.
+// @param[inout] oc - the context to modify
+void output_encode_video(OutputContext* oc);
+// Writes the trailer, then closes the output stream
+// @param[inout] oc - the context to modify
+void output_close(OutputContext* oc);
+// Frees everything associated with `oc`, including `oc` itself.
+// @param[inout] oc - the context to modify
+void output_destroy(OutputContext* oc);
 
 #endif // !OUTPUT_H

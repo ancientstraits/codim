@@ -1,9 +1,18 @@
 #include <stdio.h>
 #include <math.h>
+#include "error.h"
 #include "output.h"
 
 int main() {
-    OutputContext* oc = output_context_create("out.mp4",
+    switch (error_get()) {
+    case ERROR_NONE:
+        break;
+    default:
+        LOG("Fatal error");
+        return 1;
+    }
+
+    OutputContext* oc = output_create("out.mp4",
     &(OutputAudioOpts){
         .sample_rate = 44100,
     }, &(OutputVideoOpts){
@@ -12,17 +21,17 @@ int main() {
         .height = 1080,
     });
 
-    output_context_open(oc);
+    output_open(oc);
 
 	float at = 0;
 	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
 	float atincr2 = atincr / oc->acc->sample_rate;
 
-    while (output_context_is_open(oc)) {
-        if (output_context_get_seconds(oc) >= 10.0)
-            output_context_close(oc);
+    while (output_is_open(oc)) {
+        if (output_get_seconds(oc) >= 10.0)
+            output_close(oc);
 
-        if (output_context_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
+        if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
             for (int i = 0; i < oc->vf->height; i++) {
                 for (int j = 0; j < oc->vf->width; j++) {
                     oc->vf->data[0][(i * oc->vf->linesize[0]) + j] = 0;
@@ -35,7 +44,7 @@ int main() {
                 }
             }
 
-            output_context_encode_video(oc);
+            output_encode_video(oc);
         } else {
             int16_t *data = (int16_t *)oc->afd->data[0];
             for (int i = 0; i < oc->afd->nb_samples; i++) {
@@ -45,11 +54,11 @@ int main() {
                 at += atincr;
                 atincr += atincr2;
             }
-            output_context_encode_audio(oc);
+            output_encode_audio(oc);
         }
     }
 
-    output_context_destroy(oc);
+    output_destroy(oc);
 
     return 0;
 }

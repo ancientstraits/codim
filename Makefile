@@ -1,8 +1,9 @@
-FFLIBS = libavcodec libavformat libavutil libswresample libswscale # libavfilter freetype2 lua5.3 fontconfig
+FFLIBS = libavcodec libavformat libavutil libswresample libswscale # freetype2 luajit libavfilter fontconfig
 CFLAGS = -g -ggdb -Iinclude -Wall $(shell pkg-config --cflags $(FFLIBS))
 LFLAGS = $(shell pkg-config --libs $(FFLIBS)) -lm
 OBJS := $(patsubst  src/%.c, obj/%.o, $(wildcard src/*.c))
 DEPS := $(wildcard include/*.h)
+CC = cc
 EXEC = main
 
 all: $(EXEC)
