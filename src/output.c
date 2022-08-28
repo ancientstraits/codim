@@ -1,8 +1,9 @@
 #include "output.h"
 #include "error.h"
-#include "libavutil/error.h"
 
 #define ODIE(...) DIE(ERROR_OUTPUT, __VA_ARGS__)
+#define OASSERT(cond, ...) ASSERT(cond, ERROR_OUTPUT, __VA_ARGS__)
+#define OASSERT_ALLOC(cond, ...) OASSERT(cond, "Could not allocate " __VA_ARGS__)
 
 #define ODIE_ALLOCATE_ERR(...) \
     ODIE("Could not allocate " __VA_ARGS__)
@@ -189,6 +190,7 @@ static int write_frame(AVFormatContext* fc,
     int errnum;
 
     errnum = avcodec_send_frame(cc, f);
+    if (errnum == AVERROR_EOF) return 0;
     if (errnum < 0) ODIE("Could not send frame to encoder: %s", av_err2str(errnum));
 
     while ((errnum = avcodec_receive_packet(cc, p)) >= 0) {

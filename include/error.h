@@ -8,7 +8,7 @@
 #include <setjmp.h>
 #include <errno.h>
 
-#define ASSERT(cond, ...) if (!(cond)) DIE(__VA_ARGS__);
+#define ASSERT(cond, err, ...) if (!(cond)) DIE(err, __VA_ARGS__)
 
 #define LOG(...) do { \
 	fprintf(stderr, "log %s:%d (%s()): ", __FILE__, __LINE__, __func__); \
@@ -23,6 +23,7 @@
 
 #define DIE_ERRNO(err) DIE(err, "%s\n", strerror(errno))
 
+extern jmp_buf errbuf;
 #define ERROR_JMP(err) longjmp(errbuf, err)
 #define ERROR_GET() setjmp(errbuf)
 

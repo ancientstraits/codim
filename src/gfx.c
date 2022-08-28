@@ -3,13 +3,14 @@
 
 #include <stdlib.h>
 
-#include <epoxy/egl.h>
 #include <epoxy/gl.h>
 
-#define GDIE(...) DIE(ERROR_GFX, __VA_ARGS__)
-#define GASSERT(cond, ...) if(!(cond)) GDIE(__VA_ARGS__)
+#define GASSERT(cond, ...) ASSERT(cond, ERROR_GFX, __VA_ARGS__)
 
 #ifdef __linux__
+// On Linux, EGL will be used to render the image.
+#include <epoxy/egl.h>
+
 struct GfxContextInternal {
 	EGLDisplay dpy;
 	EGLContext ctx;
@@ -67,22 +68,93 @@ static void gci_destroy(GfxContextInternal* gci) {
 static void gci_render(GfxContextInternal* gci, uint8_t* buf, int width, int height) {
 	eglSwapBuffers(gci->dpy, gci->surf);
 	glReadBuffer(GL_FRONT);
-	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buf);
 }
-#endif // __linux__
+#else
+// If not on Linux, we can get away with using an invisible GLFW window instead, since the display server
+// on Macos and Windows is always on.
+#include <GLFW/glfw3.h>
+
+struct GfxContextInternal {
+	GLFWwindow* win;
+	GLuint fbo;
+	GLuint txt;
+};
+
+static GfxContextInternal* gci_create(int width, int height) {
+	GfxContextInternal* gci = calloc(1, sizeof *gci);
+
+	GASSERT(glfwInit(), "Failed to initialize GLFW");
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+#endif
+	gci->win = glfwCreateWindow(width, height, "Codim", NULL, NULL);
+	GASSERT(gci->win, "Failed to create GLFW window");
+
+	glfwMakeContextCurrent(gci->win);
+
+
+	glGenBuffers(1, &gci->fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, gci->fbo);
+
+	glGenTextures(1, &gci->txt);
+	glBindTexture(GL_TEXTURE_2D, gci->txt);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gci->txt, 0);
+
+	GASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete");
+
+	return gci;
+}
+
+static void gci_destroy(GfxContextInternal* gci) {
+	glDeleteBuffers(1, &gci->fbo);
+	glDeleteTextures(1, &gci->txt);
+	glfwTerminate();
+}
+
+static void gci_render(GfxContextInternal* gci, uint8_t* buf, int width, int height) {
+	glfwPollEvents();
+	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buf);
+}
+#endif
 
 GfxContext* gfx_create(int width, int height) {
 	GfxContext* gc = calloc(1, sizeof *gc);
+	gc->rgb_buf = calloc(4 * width * height, 1);
+	gc->width = width;
+	gc->height = height;
 	gc->gci = gci_create(width, height);
+	gc->sc = sws_getContext(
+		width, height, AV_PIX_FMT_RGB24,
+		width, height, AV_PIX_FMT_YUV420P,
+		SWS_BICUBIC, NULL, NULL, NULL
+	);
+	GASSERT(gc->sc, "Could not create SwsContext");
 	return gc;
 }
 
-void gfx_render(GfxContext* gc, uint8_t* buf) {
-	gci_render(gc->gci, buf, gc->width, gc->height);
+void gfx_render(GfxContext* gc, AVFrame* frame) {
+	gci_render(gc->gci, gc->rgb_buf, gc->width, gc->height);
+
+	// pls work pls work!
+	int stride = 3 * gc->width;
+	sws_scale(
+		gc->sc, (const uint8_t* const*)(&gc->rgb_buf), &stride,
+		0, gc->height, frame->data, frame->linesize
+	);
 }
 
 void gfx_destroy(GfxContext* gc) {
 	gci_destroy(gc->gci);
+	sws_freeContext(gc->sc);
+	free(gc->rgb_buf);
 	free(gc);
 }
 

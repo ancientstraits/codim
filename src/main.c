@@ -1,10 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+
+#include <epoxy/gl.h>
+
 #include "error.h"
 #include "output.h"
+#include "gfx.h"
 
 int main() {
-    switch (error_get()) {
+    switch (ERROR_GET()) {
     case ERROR_NONE:
         break;
     default:
@@ -27,23 +32,16 @@ int main() {
 	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
 	float atincr2 = atincr / oc->acc->sample_rate;
 
+    GfxContext* gc = gfx_create(1920, 1080);
+
     while (output_is_open(oc)) {
         if (output_get_seconds(oc) >= 10.0)
             output_close(oc);
 
         if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
-            for (int i = 0; i < oc->vf->height; i++) {
-                for (int j = 0; j < oc->vf->width; j++) {
-                    oc->vf->data[0][(i * oc->vf->linesize[0]) + j] = 0;
-                }
-            }
-            for (int i = 0; i < oc->vf->height / 2; i++) {
-                for (int j = 0; j < oc->vf->width / 2; j++) {
-                    oc->vf->data[1][(i * oc->vf->linesize[1]) + j] = (j + oc->vpts) % 256;
-                    oc->vf->data[2][(i * oc->vf->linesize[2]) + j] = (i + oc->vpts) % 256;
-                }
-            }
-
+            glClearColor(0.0, 0.5, 1.0, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            gfx_render(gc, oc->vf);
             output_encode_video(oc);
         } else {
             int16_t *data = (int16_t *)oc->afd->data[0];
@@ -58,6 +56,7 @@ int main() {
         }
     }
 
+    gfx_destroy(gc);
     output_destroy(oc);
 
     return 0;

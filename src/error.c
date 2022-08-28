@@ -1,5 +1,5 @@
 #include <setjmp.h>
 #include "error.h"
 
-jmp_buf buf;
+jmp_buf errbuf;
 

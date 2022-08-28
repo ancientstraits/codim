@@ -1,6 +1,22 @@
-FFLIBS = libavcodec libavformat libavutil libswresample libswscale # freetype2 luajit libavfilter fontconfig
-CFLAGS = -g -ggdb -Iinclude -Wall $(shell pkg-config --cflags $(FFLIBS))
-LFLAGS = $(shell pkg-config --libs $(FFLIBS)) -lm -lGL -lEGL -lepoxy
+OS = $(shell uname)
+
+LIBS = libavcodec libavformat libavutil libswresample libswscale epoxy freetype2
+ifneq ($(OS),Linux)
+	LIBS += glfw3
+endif
+
+CFLAGS = -g -ggdb -Iinclude -Wall $(shell pkg-config --cflags $(LIBS))
+LFLAGS = $(shell pkg-config --libs $(LIBS)) -lm
+ifeq ($(OS),Linux)
+	LFLAGS += -lEGL -lGL
+else
+	ifeq ($(OS),Darwin)
+		LFLAGS += -framework OpenGL
+	else
+		LFLAGS += -lopengl32 
+	endif
+endif
+
 OBJS := $(patsubst  src/%.c, obj/%.o, $(wildcard src/*.c))
 DEPS := $(wildcard include/*.h)
 CC = cc
