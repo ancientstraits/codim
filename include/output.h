@@ -12,71 +12,71 @@
 // A struct that holds all the state for the
 // encoding of a multimedia file.
 typedef struct OutputContext {
-    // Base Components
+	// Base Components
 
-    // `has_audio` and `has_video` are enabled or disabled whenever
-    // the multimedia file has audio or video features, or does not.
-    int has_audio, has_video;
-    // `fc` is used to manage the encoding of all the streams.
-    AVFormatContext* fc;
-    // `filename` holds the name of the file that the `OutputContext
-    // is writing to.
-    const char* filename;
+	// `has_audio` and `has_video` are enabled or disabled whenever
+	// the multimedia file has audio or video features, or does not.
+	int has_audio, has_video;
+	// `fc` is used to manage the encoding of all the streams.
+	AVFormatContext* fc;
+	// `filename` holds the name of the file that the `OutputContext
+	// is writing to.
+	const char* filename;
 
-    // Audio Components
+	// Audio Components
 
-    // The audio codec.
-    const AVCodec* ac;
-    // The audio codec context.
-    AVCodecContext* acc;
-    // The audio stream.
-    AVStream* as;
-    // The encoded audio packet to write to the file.
-    AVPacket* ap;
-    // The audio frame that uses FLTP (should not be drawn to).
-    AVFrame* af;
-    // The audio frame that uses S16 (should be drawn to).
-    AVFrame* afd;
-    // The conversion context used to convert the `afd` to the `af`.
-    SwrContext* aconv;
-    // The frame number.
-    int apts;
-    // Whether the audio stream is being encoded or not.
-    int aenc;
-    // The maximum number of samples per frame.
-    int anbs;
-    // The current samples count.
-    int asc;
+	// The audio codec.
+	const AVCodec* ac;
+	// The audio codec context.
+	AVCodecContext* acc;
+	// The audio stream.
+	AVStream* as;
+	// The encoded audio packet to write to the file.
+	AVPacket* ap;
+	// The audio frame that uses FLTP (should not be drawn to).
+	AVFrame* af;
+	// The audio frame that uses S16 (should be drawn to).
+	AVFrame* afd;
+	// The conversion context used to convert the `afd` to the `af`.
+	SwrContext* aconv;
+	// The frame number.
+	int apts;
+	// Whether the audio stream is being encoded or not.
+	int aenc;
+	// The maximum number of samples per frame.
+	int anbs;
+	// The current samples count.
+	int asc;
 
 
-    // Video Components
+	// Video Components
 
-    // The video codec.
-    const AVCodec* vc;
-    // The video codec context.
-    AVCodecContext* vcc;
-    // The video stream.
-    AVStream* vs;
-    // The encoded video packet to write to the file.
-    AVPacket* vp;
-    // The raw video data that should be drawn to.
-    AVFrame* vf;
-    // The frame number.
-    int vpts;
-    // Whether the video stream is being encoded or not.
-    int venc;
+	// The video codec.
+	const AVCodec* vc;
+	// The video codec context.
+	AVCodecContext* vcc;
+	// The video stream.
+	AVStream* vs;
+	// The encoded video packet to write to the file.
+	AVPacket* vp;
+	// The raw video data that should be drawn to.
+	AVFrame* vf;
+	// The frame number.
+	int vpts;
+	// Whether the video stream is being encoded or not.
+	int venc;
 } OutputContext;
 
 // A struct used to pass in audio options.
 typedef struct OutputAudioOpts {
-    // The sample rate to be used for the audio.
-    int sample_rate;
+	// The sample rate to be used for the audio.
+	int sample_rate;
 } OutputAudioOpts;
 
 // A struct used to pass in video options.
 typedef struct OutputVideoOpts {
-    // The width, height, and frames per second of the video.
-    int width, height, fps;
+	// The width, height, and frames per second of the video.
+	int width, height, fps;
 } OutputVideoOpts;
 
 // Returns a newly allocated `OutputContext*`.
@@ -85,7 +85,7 @@ typedef struct OutputVideoOpts {
 // @param ao - The audio options, or `NULL` if audio is not being encoded.
 // @param vo - The video options, or `NULL` if video is not being encoded.
 OutputContext* output_create(
-    const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo);
+	const char* filename, OutputAudioOpts* ao, OutputVideoOpts* vo);
 
 // Opens the file and writes a header to it.
 // @param[inout] oc - the context to modify
@@ -99,10 +99,10 @@ double output_get_seconds(OutputContext* oc);
 
 // `OutputType` specifies whether a stream's type is audio or video.
 typedef enum OutputType {
-    // The stream's type is audio.
-    OUTPUT_TYPE_AUDIO,
-    // The stream's type is video.
-    OUTPUT_TYPE_VIDEO,
+	// The stream's type is audio.
+	OUTPUT_TYPE_AUDIO,
+	// The stream's type is video.
+	OUTPUT_TYPE_VIDEO,
 } OutputType;
 // Returns whether the next frame that should be encoded is an audio
 // or video stream.
