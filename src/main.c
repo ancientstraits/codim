@@ -8,18 +8,20 @@
 #include "output.h"
 #include "gfx.h"
 
+#define WIDTH  600
+#define HEIGHT 400
+
 static void draw() {
 	glClearColor(0.0, 0.5, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	// blasphemy
 	glBegin(GL_POLYGON);
-		glColor3f(1.0, 0.0, 0.0); glVertex3f(0.0, 0.5, 0.0);
-		glColor3f(0.0, 1.0, 0.0); glVertex3f(0.5, -0.5, 0.0);
-		glColor3f(0.0, 0.0, 1.0); glVertex3f(0.5, 0.5, 0.0);
+		glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
+		glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
+		glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
 	glEnd();
 
-	// glFlush();
+	glFlush;
 }
 
 int main() {
@@ -36,8 +38,8 @@ int main() {
 		.sample_rate = 44100,
 	}, &(OutputVideoOpts) {
 		.fps = 24,
-		.width = 1920,
-		.height = 1080,
+		.width  = WIDTH,
+		.height = HEIGHT,
 	});
 
 	output_open(oc);
@@ -46,7 +48,7 @@ int main() {
 	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
 	float atincr2 = atincr / oc->acc->sample_rate;
 
-	GfxContext* gc = gfx_create(1920, 1080);
+	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
 
 	while (output_is_open(oc)) {
 		if (output_get_seconds(oc) >= 10.0)

@@ -37,6 +37,9 @@ typedef enum Error {
 
 	// For errors relating to graphics initialization
 	ERROR_GFX,
+
+	// For errors relating to FreeType or fonts
+	ERROR_TEXT,
 } Error;
 
 extern jmp_buf errbuf;
