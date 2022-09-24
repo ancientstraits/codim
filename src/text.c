@@ -1,6 +1,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+// hello txt :D
+
 #include <epoxy/gl.h>
 
 #include "text.h"
