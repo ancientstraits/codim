@@ -54,10 +54,15 @@ OutputContext* output_create(
 			oc->fc, &oc->ac, &oc->ap, &oc->as, &oc->acc);
 
 		oc->acc->sample_fmt	 = AV_SAMPLE_FMT_FLTP;
-		oc->acc->sample_rate	= ao->sample_rate;
-		oc->acc->channels	   = av_get_channel_layout_nb_channels(oc->acc->channel_layout);
-		oc->acc->channel_layout = AV_CH_LAYOUT_STEREO;
-		oc->as->time_base	   = (AVRational){1, oc->acc->sample_rate};
+		oc->acc->sample_rate = ao->sample_rate;
+
+		// !! KEY !!
+		//oc->acc->channels = av_get_channel_layout_nb_channels(oc->acc->channel_layout);
+		//oc->acc->channel_layout = AV_CH_LAYOUT_STEREO;
+		av_channel_layout_copy(&oc->acc->ch_layout, &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO);
+
+
+		oc->as->time_base = (AVRational){1, oc->acc->sample_rate};
 	}
 
 	if (oc->has_video) {
@@ -82,7 +87,8 @@ static AVFrame* create_audio_frame(AVCodecContext* acc,
 	if (!f) ODIE_ALLOCATE_ERR("AVFrame");
 
 	f->format		 = sample_fmt;
-	f->channel_layout = acc->channel_layout;
+	//f->channel_layout = acc->channel_layout;
+	av_channel_layout_copy(&f->ch_layout, &acc->ch_layout);
 	f->sample_rate	= acc->sample_rate;
 	f->nb_samples	 = nb_samples;
 	int errnum = av_frame_get_buffer(f, 0);
@@ -97,10 +103,10 @@ static SwrContext* create_swr_context(AVCodecContext* acc) {
 	SwrContext* ret = swr_alloc();
 	if (!ret) ODIE_ALLOCATE_ERR("SwrContext");
 
-	av_opt_set_int(ret, "in_channel_count", acc->channels, 0);
+	av_opt_set_int(ret, "in_channel_count", acc->ch_layout.nb_channels, 0);
 	av_opt_set_int(ret, "in_sample_rate", acc->sample_rate, 0);
 	av_opt_set_sample_fmt(ret, "in_sample_fmt", AV_SAMPLE_FMT_S16, 0);
-	av_opt_set_int(ret, "out_channel_count", acc->channels, 0);
+	av_opt_set_int(ret, "out_channel_count", acc->ch_layout.nb_channels, 0);
 	av_opt_set_int(ret, "out_sample_rate", acc->sample_rate, 0);
 	av_opt_set_sample_fmt(ret, "out_sample_fmt", acc->sample_fmt, 0);
 	int errnum = swr_init(ret);

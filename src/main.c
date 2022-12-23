@@ -31,14 +31,16 @@ int main() {
 		return 1;
 	}
 
+
 	OutputContext* oc = output_create("out.mp4",
-	&(OutputAudioOpts) {
-		.sample_rate = 44100,
-	}, &(OutputVideoOpts) {
-		.fps = 24,
-		.width = 1920,
-		.height = 1080,
-	});
+		&(OutputAudioOpts) {
+			.sample_rate = 44100,
+		}, &(OutputVideoOpts) {
+			.fps = 24,
+			.width = 1920,
+			.height = 1080,
+		}
+	);
 
 	output_open(oc);
 
@@ -61,7 +63,7 @@ int main() {
 			int16_t *data = (int16_t *)oc->afd->data[0];
 			for (int i = 0; i < oc->afd->nb_samples; i++) {
 				int v = sin(at) * 10000;
-				for (int j = 0; j < oc->acc->channels; j++)
+				for (int j = 0; j < oc->acc->ch_layout.nb_channels; j++)
 					*data++ = v;
 				at += atincr;
 				atincr += atincr2;
