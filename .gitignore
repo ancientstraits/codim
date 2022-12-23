@@ -3,4 +3,5 @@ obj
 compile_commands.json
 main
 test.c
+*.mp4
 *.exe
