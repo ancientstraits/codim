@@ -72,7 +72,7 @@ static void gci_render(GfxContextInternal* gci, uint8_t* buf, int width, int hei
 }
 #else
 // If not on Linux, we can get away with using an invisible GLFW window instead, since the display server
-// on macOs and Windows is always on.
+// on MacOs and Windows is always on.
 #include <GLFW/glfw3.h>
 
 struct GfxContextInternal {
@@ -87,8 +87,9 @@ static GfxContextInternal* gci_create(int width, int height) {
 	GASSERT(glfwInit(), "Failed to initialize GLFW");
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
@@ -122,8 +123,6 @@ static void gci_destroy(GfxContextInternal* gci) {
 static void gci_render(GfxContextInternal* gci, uint8_t* buf, int width, int height) {
 	glfwPollEvents();
 	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buf);
-	glfwSwapBuffers(gci->win);
-	glfwPollEvents();
 }
 #endif
 

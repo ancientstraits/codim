@@ -8,21 +8,9 @@
 #include "output.h"
 #include "gfx.h"
 
-#define WIDTH  600
-#define HEIGHT 400
+#define WIDTH  1920
+#define HEIGHT 1080
 
-static void draw() {
-	glClearColor(0.0, 0.5, 1.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBegin(GL_POLYGON);
-		glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
-		glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
-		glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
-	glEnd();
-
-	glFlush;
-}
 
 int main() {
 	switch (ERROR_GET()) {
@@ -39,8 +27,8 @@ int main() {
 			.sample_rate = 44100,
 		}, &(OutputVideoOpts) {
 			.fps = 24,
-			.width = 1920,
-			.height = 1080,
+			.width = WIDTH,
+			.height = HEIGHT,
 		}
 	);
 
@@ -57,7 +45,8 @@ int main() {
 			output_close(oc);
 
 		if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
-			draw();
+			glClearColor(0.0, 0.5, 1.0, 1.0);
+			glClear(GL_COLOR_BUFFER_BIT);
 			gfx_render(gc, oc->vf);
 
 			output_encode_video(oc);
