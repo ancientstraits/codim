@@ -35,7 +35,6 @@ int main() {
 
 
 	OutputContext* oc = output_create("out.mp4",
-<<<<<<< HEAD
 		&(OutputAudioOpts) {
 			.sample_rate = 44100,
 		}, &(OutputVideoOpts) {
@@ -44,15 +43,6 @@ int main() {
 			.height = 1080,
 		}
 	);
-=======
-	&(OutputAudioOpts) {
-		.sample_rate = 44100,
-	}, &(OutputVideoOpts) {
-		.fps = 24,
-		.width  = WIDTH,
-		.height = HEIGHT,
-	});
->>>>>>> 16e741b76d6720354852f916c027a02f2ad110f4
 
 	output_open(oc);
 
