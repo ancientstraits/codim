@@ -1,48 +1,46 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-// hello txt :D
-
-#include <epoxy/gl.h>
-
-#include "text.h"
 #include "error.h"
+#include "text.h"
 
-#define TASSERT(cond, ...) ASSERT(cond, ERROR_TEXT, __VA_ARGS__);
+#define TASSERT(cond, ...) ASSERT(cond, ERROR_TEXT, __VA_ARGS__)
 
-#define FACE "C:/Windows/Fonts/Comic.ttf"
 
-const char* vert_shader =
-	"#version 330\n"
+TextContext* text_create(const char* font_path, uint32_t px_size) {
+	TextContext* tc = calloc(1, sizeof *tc);
 
-	"attribute vec4 coord;"
-	"varying vec2 texcoord;"
+	// XXX FreeType functions return 0 on success
+	// Make sure all ASSERT conds for FreeType functions start with `!`
+	TASSERT(!FT_Init_FreeType(&tc->lib), "Failed to initialize FreeType");
+	TASSERT(!FT_New_Face(tc->lib, font_path, 0, &tc->face),
+		"Could not open font file %s", font_path);
 
-	"void main(void) {"
-		"gl_Position = vec4(coord.xy, 0, 1);"
-		"texcoord = coord.zw;"
-	"}"
-;
+	TASSERT(!FT_Set_Pixel_Sizes(tc->face, 0, px_size), "Failed to set font size");
 
-const char* frag_shader =
-	"#version 330\n"
+	return tc;
+}
 
-	"varying vec2 texcoord;"
-	"uniform sampler2D tex;"
-	"uniform vec4 color;"
+// TODO this is only a sample!
+// This code should be replaced with code that loads texture atlas into OpenGL!
+void text_render(TextContext* tc, AVFrame* f) {
+	TASSERT(!FT_Load_Char(tc->face, 'p', FT_LOAD_RENDER), "Could not render 'p' character");
+	FT_Bitmap* b = &tc->face->glyph->bitmap;
 
-	"void main(void) {"
-		"gl_FragColor = vec4(1, 1, 1, texture2D(tex, texcoord).r) & color;"
-	"}"
-;
+	for (int y = 0; y < b->rows; y++) {
+		for (int x = 0; x < b->width; x++) {
+			f->data[0][y * f->linesize[0] + x] = b->buffer[y * b->width + x];
+		}
+	}
+}
 
-void text_something(void) {
-	FT_Library lib;
-	TASSERT(FT_Init_FreeType(&lib), "Could not initialize FreeType");
-	FT_Face face;
-	TASSERT(FT_New_Face(lib, FACE, 0, &face), "Could not open font");
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+void text_destroy(TextContext* tc) {
+	FT_Done_Face(tc->face);
+	FT_Done_FreeType(tc->lib);
+	free(tc);
 }
 

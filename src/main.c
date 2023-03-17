@@ -7,9 +7,10 @@
 #include "error.h"
 #include "output.h"
 #include "gfx.h"
+#include "text.h"
 
-#define WIDTH  1920
-#define HEIGHT 1080
+#define WIDTH  600
+#define HEIGHT 400
 
 
 int main() {
@@ -39,6 +40,7 @@ int main() {
 	float atincr2 = atincr / oc->acc->sample_rate;
 
 	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
+	TextContext* tc = text_create("sample.ttf", 30);
 
 	while (output_is_open(oc)) {
 		if (output_get_seconds(oc) >= 10.0)
@@ -48,6 +50,7 @@ int main() {
 			glClearColor(0.0, 0.5, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
 			gfx_render(gc, oc->vf);
+			text_render(tc, oc->vf);
 
 			output_encode_video(oc);
 		} else {
@@ -63,6 +66,7 @@ int main() {
 		}
 	}
 
+	text_destroy(tc);
 	gfx_destroy(gc);
 	output_destroy(oc);
 
