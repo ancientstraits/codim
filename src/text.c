@@ -11,6 +11,10 @@
 #define TASSERT(cond, ...) ASSERT(cond, ERROR_TEXT, __VA_ARGS__)
 
 
+static void text_load(TextContext* tc, uint32_t c) {
+	TASSERT(!FT_Load_Char(tc->face, c, FT_LOAD_RENDER), "Could not render %c character", c);	
+}
+
 TextContext* text_create(const char* font_path, uint32_t px_size) {
 	TextContext* tc = calloc(1, sizeof *tc);
 
@@ -22,19 +26,41 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 
 	TASSERT(!FT_Set_Pixel_Sizes(tc->face, 0, px_size), "Failed to set font size");
 
+
+	uint32_t atlas_w = 0, atlas_h = 0;
+	FT_GlyphSlot g = tc->face->glyph;
+
+	// 1st pass: determine dimensions
+	for (uint8_t c = 0; c < 128; c++) {
+		text_load(tc, c);
+		if (atlas_h < g->bitmap.rows)
+			atlas_h = g->bitmap.rows;
+		atlas_h += g->bitmap.width;
+	}
+
 	return tc;
 }
 
 // TODO this is only a sample!
 // This code should be replaced with code that loads texture atlas into OpenGL!
 void text_render(TextContext* tc, AVFrame* f) {
-	TASSERT(!FT_Load_Char(tc->face, 'p', FT_LOAD_RENDER), "Could not render 'p' character");
-	FT_Bitmap* b = &tc->face->glyph->bitmap;
+	FT_GlyphSlot g = tc->face->glyph;
 
-	for (int y = 0; y < b->rows; y++) {
-		for (int x = 0; x < b->width; x++) {
-			f->data[0][y * f->linesize[0] + x] = b->buffer[y * b->width + x];
+	char* s = "Olipolig";
+
+	uint32_t ox = 10, oy = 30;
+	for (int i = 0; s[i]; i++) {
+		text_load(tc, s[i]);
+
+		for (uint32_t y = 0; y < g->bitmap.rows; y++) {
+			for (uint32_t x = 0; x < g->bitmap.width; x++) {
+				uint32_t fx = x + ox + g->bitmap_left;
+				uint32_t fy = y + oy - g->bitmap_top;
+				f->data[0][fy * f->linesize[0] + fx] = g->bitmap.buffer[y * g->bitmap.width + x];
+			}
 		}
+		ox += g->advance.x / 64;
+		oy += g->advance.y / 64;
 	}
 }
 

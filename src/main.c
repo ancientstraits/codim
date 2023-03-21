@@ -39,8 +39,11 @@ int main() {
 	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
 	float atincr2 = atincr / oc->acc->sample_rate;
 
+	float mul = 0.1;
+
 	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
 	TextContext* tc = text_create("sample.ttf", 30);
+	// printf("%u\n", text_max_rows(tc));
 
 	while (output_is_open(oc)) {
 		if (output_get_seconds(oc) >= 10.0)
@@ -56,11 +59,16 @@ int main() {
 		} else {
 			int16_t *data = (int16_t *)oc->afd->data[0];
 			for (int i = 0; i < oc->afd->nb_samples; i++) {
-				int v = sin(at) * 10000;
+				int v =
+					sin(8 * mul * at) * 10000 +
+					sin(4 * mul * at) * 10000 +
+					sin(2 * mul * at) * 10000 +
+					sin(1 * mul * at) * 10000;
 				for (int j = 0; j < oc->acc->ch_layout.nb_channels; j++)
 					*data++ = v;
 				at += atincr;
-				atincr += atincr2;
+				mul += 0.01;
+				//atincr += atincr2;
 			}
 			output_encode_audio(oc);
 		}
