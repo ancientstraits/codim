@@ -8,9 +8,20 @@
 #include FT_FREETYPE_H
 #include <libavcodec/avcodec.h>
 
+typedef struct TextCharInfo {
+	float
+		adv_x, adv_y,
+		width, height,
+		left, top,
+		off_x;
+} TextCharInfo;
+
 typedef struct TextContext {
 	FT_Library lib;
 	FT_Face face;
+
+	int txt; // OpenGL texture ID
+	TextCharInfo info[128];
 } TextContext;
 
 

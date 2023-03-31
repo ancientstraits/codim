@@ -145,7 +145,6 @@ GfxContext* gfx_create(int width, int height) {
 void gfx_render(GfxContext* gc, AVFrame* frame) {
 	gci_render(gc->gci, gc->rgb_buf, gc->width, gc->height);
 
-	// pls work pls work!
 	int stride = 3 * gc->width;
 	sws_scale(
 		gc->sc, (const uint8_t* const*)(&gc->rgb_buf), &stride,
