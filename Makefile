@@ -1,6 +1,6 @@
 OS = $(shell uname)
 
-LIBS = libavcodec libavformat libavutil libswresample libswscale epoxy freetype2
+LIBS = libavcodec libavformat libavutil libswresample libswscale epoxy freetype2 cglm
 ifneq ($(OS),Linux)
 	LIBS += glfw3
 endif

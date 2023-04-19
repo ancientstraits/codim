@@ -1,0 +1,9 @@
+#ifndef SCRIPTING_H
+#define SCRIPTING_H
+
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+#endif // !SCRIPTING_H
+

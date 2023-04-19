@@ -8,24 +8,33 @@
 #include "output.h"
 #include "glutil.h"
 #include "gfx.h"
-//#include "text.h"
+#include "text.h"
 
 #define WIDTH  600
 #define HEIGHT 400
 
-const char* vert_source =
+static const char* vert_source =
 	"#version 410 core\n"
 	"layout (location = 0) in vec2 coord;"
 	"layout (location = 1) in float intensity;"
-	"flat out float intens;"
+	//"uniform vec2 dimension;"
+	"layout (location = 2) in vec2 dimension;"
+	"out float intens;"
+
+	"vec2 ndc(vec2 coord, vec2 dim) {"
+		"return (2.0 * (coord + 0.5) / dim) - 1.0;"
+	"}"
+
 	"void main() {"
-		"gl_Position = vec4(coord.x, -coord.y, 0.0, 1.0);"
+		//"vec2 fcoord = vec2(ndc(coord.x, 600.0), ndc(coord.y, 400.0));"
+		"vec2 fcoord = ndc(coord, dimension);"
+		"gl_Position = vec4(fcoord.x, -fcoord.y, 0.0, 1.0);"
 		"intens = intensity;"
 	"}"
 ;
-const char* frag_source = 
+static const char* frag_source = 
 	"#version 410 core\n"
-	"flat in float intens;"
+	"in float intens;"
 	"out vec4 color;"
 	"void main() {"
 		"color = vec4(intens, intens, intens, 1.0);"
@@ -34,11 +43,12 @@ const char* frag_source =
 
 // x, y, intensity
 GLfloat vertices[] = {
-	-0.5, -0.5, 0.0,
-	-0.5, 0.5,  1.0,
-	0.5,  -0.5, 1.0,
-	0.5,  0.5,  0.0,
+	10, 10, 1.0,
+	10, 50, 0.0,
+	50, 10, 1.0,
+	50, 50, 0.0,
 };
+const int num_verts = sizeof(vertices) / (sizeof(GLfloat) * 3);
 
 static void setup_vertices(GLuint* vao, GLuint* vbo) {
 	glGenVertexArrays(1, vao);
@@ -85,12 +95,23 @@ int main() {
 	float atincr2 = atincr / oc->acc->sample_rate;
 
 	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
-	//TextContext* tc = text_create("sample.ttf", 30);
+
+	TextContext* tc = text_create("sample.ttf", 100);
 	// printf("%u\n", text_max_rows(tc));
 
-	GLuint prog = shader_prog(vert_source, frag_source);
-	GLuint vao, vbo;
-	setup_vertices(&vao, &vbo);
+	//GLuint prog = shader_prog(vert_source, frag_source);
+	//GLint dimension_loc = glGetUniformLocation(prog, "dimension");
+	//glUseProgram(prog);
+	//glUniform2f(dimension_loc, WIDTH, HEIGHT);
+	//glUniform2f(2, WIDTH, HEIGHT);
+
+	//GLuint vao, vbo;
+	//setup_vertices(&vao, &vbo);
+
+	text_render(tc, "Oliopolig", 60.0, 60.0, WIDTH, HEIGHT);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	while (output_is_open(oc)) {
 		if (output_get_seconds(oc) >= 10.0)
@@ -99,12 +120,13 @@ int main() {
 		if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
 			glClearColor(0.0, 0.5, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
-			glUseProgram(prog);
-			glBindVertexArray(vao);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			
+			//glUseProgram(prog);
+			//glBindVertexArray(vao);
+			//glDrawArrays(GL_TRIANGLE_STRIP, 0, num_verts);
+			text_draw(tc, 600.0, 400.0);
 
 			gfx_render(gc, oc->vf);
-			//text_render(tc, oc->vf);
 
 			output_encode_video(oc);
 		} else {
@@ -120,11 +142,11 @@ int main() {
 		}
 	}
 
-	glDeleteVertexArrays(1, &vao);
-	glDeleteBuffers(1, &vbo);
-	glDeleteProgram(prog);
+	//glDeleteVertexArrays(1, &vao);
+	//glDeleteBuffers(1, &vbo);
+	//glDeleteProgram(prog);
 
-	//text_destroy(tc);
+	text_destroy(tc);
 	gfx_destroy(gc);
 	output_destroy(oc);
 

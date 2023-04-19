@@ -7,6 +7,20 @@
 
 #define GASSERT(cond, ...) ASSERT(cond, ERROR_GFX, __VA_ARGS__)
 
+static void GLAPIENTRY
+on_gl_err( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam ) {
+	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+		type, severity, message );
+}
+
+
 #ifdef __linux__
 // On Linux, EGL will be used to render the image.
 #include <epoxy/egl.h>
@@ -88,7 +102,8 @@ static GfxContextInternal* gci_create(int width, int height) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	// glfw window will be visible when `VISIBLE` env var exists
+	glfwWindowHint(GLFW_VISIBLE, getenv("VISIBLE") ? GLFW_TRUE : GLFW_FALSE);
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
@@ -133,6 +148,8 @@ GfxContext* gfx_create(int width, int height) {
 	gc->width = width;
 	gc->height = height;
 	gc->gci = gci_create(width, height);
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(on_gl_err, 0);
 	gc->sc = sws_getContext(
 		width, height, AV_PIX_FMT_RGB24,
 		width, height, AV_PIX_FMT_YUV420P,
