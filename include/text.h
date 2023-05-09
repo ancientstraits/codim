@@ -7,6 +7,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <libavcodec/avcodec.h>
+#include "render.h"
 
 typedef struct TextCharInfo {
 	float
@@ -19,8 +20,8 @@ typedef struct TextCharInfo {
 typedef struct TextContext {
 	FT_Library lib;
 	FT_Face face;
-	GLuint vao, vbo, prog, tex;
-	uint32_t num_verts, atlas_w, atlas_h;
+	uint32_t atlas_w, atlas_h;
+	GLuint tex;
 
 	TextCharInfo info[128];
 } TextContext;
@@ -28,8 +29,8 @@ typedef struct TextContext {
 
 TextContext* text_create(const char* font_path, uint32_t px_size);
 //void text_load(TextContext* tc, uint32_t c);
-void text_render(TextContext* tc, const char* s, float x, float y, float sw, float sh);
-void text_draw(TextContext* tc, float width, float height);
+RenderDrawable text_render(TextContext* tc,
+	const char* s, float x, float y);
 void text_destroy(TextContext* tc);
 
 

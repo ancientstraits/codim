@@ -9,6 +9,8 @@
 #include "glutil.h"
 #include "gfx.h"
 #include "text.h"
+#include "render.h"
+#include "scripting.h"
 
 #define WIDTH  600
 #define HEIGHT 400
@@ -68,7 +70,7 @@ static void setup_vertices(GLuint* vao, GLuint* vbo) {
 	glBindVertexArray(0);
 }
 
-int main() {
+int not_main() {
 	switch (ERROR_GET()) {
 	case ERROR_NONE:
 		break;
@@ -95,20 +97,11 @@ int main() {
 	float atincr2 = atincr / oc->acc->sample_rate;
 
 	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
+	RenderContext* rc = render_create();
 
-	TextContext* tc = text_create("sample.ttf", 100);
-	// printf("%u\n", text_max_rows(tc));
-
-	//GLuint prog = shader_prog(vert_source, frag_source);
-	//GLint dimension_loc = glGetUniformLocation(prog, "dimension");
-	//glUseProgram(prog);
-	//glUniform2f(dimension_loc, WIDTH, HEIGHT);
-	//glUniform2f(2, WIDTH, HEIGHT);
-
-	//GLuint vao, vbo;
-	//setup_vertices(&vao, &vbo);
-
-	text_render(tc, "Oliopolig", 60.0, 60.0, WIDTH, HEIGHT);
+	TextContext* tc = text_create("sample.ttf", 10);
+	RenderDrawable rd = text_render(tc, "Oliopolig", 60.0, 60.0);
+	render_add(rc, &rd);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -124,7 +117,7 @@ int main() {
 			//glUseProgram(prog);
 			//glBindVertexArray(vao);
 			//glDrawArrays(GL_TRIANGLE_STRIP, 0, num_verts);
-			text_draw(tc, 600.0, 400.0);
+			render(rc, WIDTH, HEIGHT);
 
 			gfx_render(gc, oc->vf);
 
@@ -151,5 +144,22 @@ int main() {
 	output_destroy(oc);
 
 	return 0;
+}
+
+int main(int argc, char** argv) {
+	switch (ERROR_GET()) {
+	case ERROR_NONE:
+		break;
+	default:
+		LOG("Fatal error");
+		return 1;
+	}
+
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s [SCRIPT]\n", argv[0]);
+		return 1;
+	}
+
+	scripting_exec(argv[1]);
 }
 

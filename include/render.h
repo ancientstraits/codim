@@ -2,39 +2,24 @@
 #define RENDER_H
 
 #include <stdint.h>
-#include <epoxy/gl.h>
 #include <cglm/cglm.h>
+#include <epoxy/gl.h>
 
-typedef struct RenderObject {
-	int use_txt;
-	GLuint vao, vbo, txt, shader;
-} RenderObject;
-
-typedef struct RenderVertex {
-	vec3 pos, texpos;
-} RenderVertex;
-
-typedef struct RenderTexture {
-	uint8_t* ptr;
-	vec2 dim;
-} RenderTexture;
-
-typedef struct RenderDrawable {
-	vec3 pos;
-	size_t n_vertices;
-	// if txt.ptr == NULL, doesn't use texture
-	RenderTexture txt;
-	RenderVertex* vertices;
+typedef struct {
+	vec2 texdim;
+	GLuint tex, vao, vbo;
+	GLuint n_verts;
 } RenderDrawable;
 
-typedef struct RenderContext {
-	size_t num_objects, capacity;
-	RenderObject* objects;
+typedef struct {
+	RenderDrawable** drawables;
+	size_t len, capacity;
+	GLuint prog;
 } RenderContext;
 
 RenderContext* render_create();
 void render_add(RenderContext* rc, RenderDrawable* rd);
-void render(RenderContext* rc);
+void render(RenderContext* rc, int width, int height);
 void render_destroy(RenderContext* rc);
 
 #endif // !RENDER_H

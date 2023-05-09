@@ -1,6 +1,8 @@
 #ifndef GLUTIL_H
 #define GLUTIL_H
 
+#include <epoxy/gl.h>
+
 #define GL() do { \
 	GLenum x = glGetError(); \
 	ASSERT(x == GL_NO_ERROR, ERROR_GFX, "Error %u", x); \

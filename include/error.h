@@ -45,7 +45,7 @@ typedef enum Error {
 	ERROR_GL,
 
 	// For errors relating to the Lua API
-	ERROR_SCRIPTING
+	ERROR_SCRIPTING,
 } Error;
 
 extern jmp_buf errbuf;

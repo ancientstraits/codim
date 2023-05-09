@@ -1,6 +1,6 @@
 OS = $(shell uname)
 
-LIBS = libavcodec libavformat libavutil libswresample libswscale epoxy freetype2 cglm
+LIBS = libavcodec libavformat libavutil libswresample libswscale epoxy freetype2 cglm luajit
 ifneq ($(OS),Linux)
 	LIBS += glfw3
 endif
@@ -19,7 +19,7 @@ endif
 
 OBJS := $(patsubst  src/%.c, obj/%.o, $(wildcard src/*.c))
 DEPS := $(wildcard include/*.h)
-CC = cc
+CC = clang
 EXEC = main
 
 all: $(EXEC)

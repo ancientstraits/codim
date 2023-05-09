@@ -1,6 +1,0 @@
-#include "scripting.h"
-#include "error.h"
-#define SASSERT(cond, ...) ASSERT(cond, ERROR_SCRIPTING, __VA_ARGS__)
-
-
-

@@ -77,13 +77,15 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 		text_load(tc, c);
 		if (atlas_h < g->bitmap.rows)
 			atlas_h = g->bitmap.rows;
-		atlas_w += g->bitmap.width + 1; // the `1` is for padding
+		atlas_w += g->bitmap.width;
 	}
 	tc->atlas_w = atlas_w;
 	tc->atlas_h = atlas_h;
 
+	//glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &tc->tex);
 	glBindTexture(GL_TEXTURE_2D, tc->tex);
+
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -96,6 +98,7 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 		atlas_w, atlas_h, 0,
 		GL_RED, GL_UNSIGNED_BYTE, 0
 	);
+
 
 	// 2nd pass: construct atlas
 	int x = 0;
@@ -110,15 +113,11 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 		tc->info[c].top    = g->bitmap_top;
 		tc->info[c].off_x  = x;
 
-		// Do not add to texture if is space
-		// (if you do, OpenGL will give warning)
-		if (c != ' ') {
-			glTexSubImage2D(
-				GL_TEXTURE_2D, 0,
-				x, 0, g->bitmap.width, g->bitmap.rows,
-				GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer
-			);
-		}
+		glTexSubImage2D(
+			GL_TEXTURE_2D, 0,
+			x, 0, g->bitmap.width, g->bitmap.rows,
+			GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer
+		);
 		x += g->bitmap.width + 1; // the `+ 1` is for padding
 	}
 
@@ -163,7 +162,7 @@ static void setup_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coord
 }
 
 // Assume pixel coords for `x` and `y`
-RenderDrawable text_render(TextContext* tc, const char* s, float x, float y) {
+void text_render(TextContext* tc, const char* s, float x, float y, float sw, float sh) {
 	const size_t coord_len = 6 * strlen(s);
 
 	Coord* coords = malloc(coord_len * sizeof(Coord));
@@ -206,17 +205,39 @@ RenderDrawable text_render(TextContext* tc, const char* s, float x, float y) {
 		y += tc->info[c].adv_y;
 	}
 
-	GLuint vao, vbo;
-	setup_vertices(&vao, &vbo, coords, idx);
+	tc->prog = shader_prog(vert_source, frag_source);
+	setup_vertices(&tc->vao, &tc->vbo, coords, idx);
 
 	free(coords);
-	return (RenderDrawable) {
-		.vao = vao,
-		.vbo = vbo,
-		.tex = tc->tex,
-		.n_verts = idx,
-		.texdim = {tc->atlas_w, tc->atlas_h},
-	};
+	tc->num_verts = idx;
+}
+
+void text_draw(TextContext* tc, float width, float height) {
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tc->tex);
+
+	glUseProgram(tc->prog);
+	glBindVertexArray(tc->vao);
+
+	GLint dim_loc = glGetUniformLocation(tc->prog, "dimension");
+	glUniform2f(dim_loc, width, height);
+
+	// TODO make this a vec2, not 2 floats!
+	GLint atlas_w_loc = glGetUniformLocation(tc->prog, "atlas_w");
+	glUniform1f(atlas_w_loc, (float)(tc->atlas_w));
+	GLint atlas_h_loc = glGetUniformLocation(tc->prog, "atlas_h");
+	glUniform1f(atlas_h_loc, (float)(tc->atlas_h));
+
+	GLint model_loc = glGetUniformLocation(tc->prog, "model");
+	glUniformMatrix4fv(model_loc, 1, GL_FALSE, GLM_MAT4_IDENTITY[0]);
+	GLint view_loc = glGetUniformLocation(tc->prog, "view");
+	glUniformMatrix4fv(view_loc, 1, GL_FALSE, GLM_MAT4_IDENTITY[0]);
+	mat4 projection;
+	glm_perspective(glm_rad(30), width / height, 0.0, 1.0, projection);
+	GLint projection_loc = glGetUniformLocation(tc->prog, "projection");
+	glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection[0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, tc->num_verts);
 }
 
 void text_destroy(TextContext* tc) {
