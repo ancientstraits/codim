@@ -18,11 +18,17 @@
 
 typedef enum {
 	OP_CHANGE_BG,
+	OP_PROCEDURAL_START,
+	OP_PROCEDURAL_STOP,
 } Opcode;
 
 typedef struct {
 	double r, g, b;
 } IChangeBg;
+
+typedef struct {
+	size_t id;
+} IProcedural;
 
 typedef struct {
 	Opcode op;
@@ -39,6 +45,7 @@ struct {
 	RenderContext* rc;
 	TextContext* tc;
 	Instruction* set;
+	IProcedural* callbacks;
 } state = {0};
 
 static void instruction_insert(Instruction in) {
@@ -59,6 +66,8 @@ static void print_instructions() {
 			printf("\t(%f, %f, %f)\n", bg->r, bg->g, bg->b);
 			break;
 		}
+		case OP_PROCEDURAL_START: printf("[%d]: Start Procedural\n", i);
+		case OP_PROCEDURAL_STOP: printf("[%d]: Stop Procedural\n", i);
 		default:
 			printf("[%d]: Other Instruction (Op: %u)\n", i, state.set[i].op);
 			break;
@@ -74,13 +83,43 @@ static void instruction_handle() {
 		glClearColor(bg->r, bg->g, bg->b, 1.0);
 		break;
 	}
+	case OP_PROCEDURAL_START: {
+		arrpush(state.callbacks, *(IProcedural*)(state.set[0].data));
+		break;
+	}
+	case OP_PROCEDURAL_STOP: {
+		int id = ((IProcedural*)(state.set[0].data))->id;
+		for (int i = arrlen(state.callbacks) - 1; i >= 0; i--) {
+			if (state.callbacks[i].id == id)
+				arrdel(state.callbacks, i);
+		}
+		break;
+	}
 	default: break;
 	}
-
+	if (state.set[0].op != OP_PROCEDURAL_START) {
+		free(state.set[0].data);
+	}
 	arrdel(state.set, 0);
 }
 
-static void make() {
+static void cb_call(lua_State* L, int frameno) {
+	lua_getfield(L, LUA_REGISTRYINDEX, "codim_procedural_callbacks");
+	int callbacks = lua_gettop(L);
+
+	int i;
+	for (i = 0; i < arrlen(state.callbacks); i++) {
+		lua_pushinteger(L, state.callbacks[i].id);
+		lua_gettable(L, callbacks); // push callbacks[i] to top of stack
+	}
+	lua_pushnumber(L, (double)frameno / state.vo.fps);
+	for (; i > 0; i--) {
+		lua_pcall(L, 1, 0, 0);
+		lua_remove(L, -2);
+	}
+}
+
+static void make(lua_State* L) {
 	state.oc = output_create(state.filename, &state.ao, &state.vo);
 	output_open(state.oc);
 	state.gc = gfx_create(state.vo.width, state.vo.height);
@@ -100,6 +139,8 @@ static void make() {
 			if (arrlen(state.set) > 0 && frameno >= state.set[0].frameno) {
 				instruction_handle();
 			}
+
+			cb_call(L, frameno);
 
 			glClear(GL_COLOR_BUFFER_BIT);
 			
@@ -138,21 +179,64 @@ static int api_output(lua_State* L) {
 
 static int api_changebg(lua_State* L) {
 	int top = lua_gettop(L);
-	int time = top - 3, r = top - 2, g = top - 1, b = top;
-	IChangeBg* bg = malloc(sizeof *bg); // TODO write code to free this
-	bg->r = lua_tonumber(L, r);
-	bg->g = lua_tonumber(L, g);
-	bg->b = lua_tonumber(L, b);
-	instruction_insert((Instruction){
-		.op = OP_CHANGE_BG,
-		.frameno = (int)(lua_tonumber(L, time) * state.vo.fps),
-		.data = bg,
+	if (top == 3) {
+		float
+			r = lua_tonumber(L, 1),
+			g = lua_tonumber(L, 2),
+			b = lua_tonumber(L, 3);
+		glClearColor(r, g, b, 1.0);
+	} else if (top == 4) {
+		float
+			r = lua_tonumber(L, 2),
+			g = lua_tonumber(L, 3),
+			b = lua_tonumber(L, 4);
+		IChangeBg* bg = malloc(sizeof *bg);
+		bg->r = r;
+		bg->g = g;
+		bg->b = b;
+
+		int time = lua_tonumber(L, 1);
+		instruction_insert((Instruction){
+			.op = OP_CHANGE_BG,
+			.frameno = (int)(time * state.vo.fps),
+			.data = bg,
+		});
+	} else {
+		luaL_error(L, "must have 3 or 4 arguments");
+	}
+	return 0;
+}
+
+static int api_procedural(lua_State* L) {
+	double start = lua_tonumber(L, 1);
+	double stop  = lua_tonumber(L, 2);
+	// parameter 3 is callback
+	lua_getfield(L, LUA_REGISTRYINDEX, "codim_procedural_callbacks");
+	size_t id = lua_objlen(L, -1) + 1;
+	lua_pushinteger(L, id);
+	lua_pushvalue(L, 3); // push callback
+	lua_settable(L, -3); // cbs[#cbs+1]=(3rd parameter) (cbs=registry.codim_procedural_callbacks)
+	lua_pop(L, 1); // remove registry.codim_procedural_callbacks from stack
+
+	IProcedural* proc = malloc(sizeof *proc);
+	proc->id = id;
+	instruction_insert((Instruction) {
+		.op = OP_PROCEDURAL_START,
+		.frameno = (int)(start * state.vo.fps),
+		.data = proc,
 	});
+	instruction_insert((Instruction) {
+		.op = OP_PROCEDURAL_STOP,
+		.frameno = (int)(stop * state.vo.fps),
+		.data = proc,
+	});
+
 	return 0;
 }
 
 luaL_Reg api[] = {
 	{"output", api_output},
+	{"procedural", api_procedural},
 	{"changebg", api_changebg},
 	{0},
 };
@@ -170,22 +254,32 @@ static int preload_codim(lua_State* L) {
 	return 1;
 }
 
+static void done() {
+	arrfree(state.set);
+}
+
 void scripting_exec(const char* scriptname) {
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
 
+	// for `local cm = require('codim')
 	lua_getglobal(L, "package");
 	lua_getfield(L, -1, "preload");
 	lua_pushcfunction(L, preload_codim);
 	lua_setfield(L, -2, "codim");
 
+	// table of callbacks in registry
+	lua_pushstring(L, "codim_procedural_callbacks");
+	lua_createtable(L, 0, 0);
+	lua_settable(L, LUA_REGISTRYINDEX);
+
 	// Lua functions return 0 on success
 	SASSERT(!luaL_loadfile(L, scriptname), "Could not load file %s", scriptname);
 	SASSERT(!lua_pcall(L, 0, 0, 0), "Error running script: %s", lua_tostring(L, -1));
 
+	make(L);
 	lua_close(L);
-
-	make();
+	done();
 }
 
 

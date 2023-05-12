@@ -6,7 +6,14 @@ cm.output('out.mp4', {
 	fps = 24,
 })
 
-for i = 0,10,0.01 do
-	cm.changebg(i, 0.0, i/10, 0.0)
+function mysin(x)
+	return (math.sin((2*math.pi)*x) / 2.0) + 0.5
 end
+function mycos(x)
+	return mysin(x+(1/4))
+end
+
+cm.procedural(0, 10, function(t)
+	cm.changebg(0.0, mycos(t), mysin(t))
+end)
 
