@@ -148,8 +148,13 @@ GfxContext* gfx_create(int width, int height) {
 	gc->width = width;
 	gc->height = height;
 	gc->gci = gci_create(width, height);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(on_gl_err, 0);
+
 	gc->sc = sws_getContext(
 		width, height, AV_PIX_FMT_RGB24,
 		width, height, AV_PIX_FMT_YUV420P,

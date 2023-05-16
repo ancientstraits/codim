@@ -123,6 +123,7 @@ static void make(lua_State* L) {
 	state.oc = output_create(state.filename, &state.ao, &state.vo);
 	output_open(state.oc);
 	state.gc = gfx_create(state.vo.width, state.vo.height);
+	state.rc = render_create();
 
 	int frameno = 0;
 	float at = 0;
@@ -139,11 +140,11 @@ static void make(lua_State* L) {
 			if (arrlen(state.set) > 0 && frameno >= state.set[0].frameno) {
 				instruction_handle();
 			}
-
 			cb_call(L, frameno);
 
 			glClear(GL_COLOR_BUFFER_BIT);
 			
+			render(state.rc, state.vo.width, state.vo.height);
 			gfx_render(state.gc, state.oc->vf);
 			output_encode_video(state.oc);
 
@@ -162,6 +163,8 @@ static void make(lua_State* L) {
 
 	}
 
+	if (state.tc) text_destroy(state.tc);
+	render_destroy(state.rc);
 	gfx_destroy(state.gc);
 	output_destroy(state.oc);
 }
@@ -234,10 +237,19 @@ static int api_procedural(lua_State* L) {
 	return 0;
 }
 
+static int api_something(lua_State* L) {
+	state.tc = text_create("sample.ttf", 100);
+	RenderDrawable rd = text_render(state.tc, "Oliopolig", 60.0, 60.0);
+	render_add(state.rc, rd);
+
+	return 0;
+}
+
 luaL_Reg api[] = {
 	{"output", api_output},
 	{"procedural", api_procedural},
 	{"changebg", api_changebg},
+	{"something", api_something},
 	{0},
 };
 

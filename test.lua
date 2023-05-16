@@ -6,6 +6,7 @@ cm.output('out.mp4', {
 	fps = 24,
 })
 
+
 function mysin(x)
 	return (math.sin((2*math.pi)*x) / 2.0) + 0.5
 end
@@ -14,6 +15,10 @@ function mycos(x)
 end
 
 cm.procedural(0, 10, function(t)
+	if t == 0 then
+		print('yes')
+		cm.something()
+	end
 	cm.changebg(0.0, mycos(t), mysin(t))
 end)
 

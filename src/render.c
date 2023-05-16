@@ -49,14 +49,14 @@ RenderContext* render_create(void) {
 	return rc;
 }
 
-void render_add(RenderContext* rc, RenderDrawable* rd) {
+void render_add(RenderContext* rc, RenderDrawable rd) {
 	rc->len++;
-	arrput(rc->drawables, rd);
+	arrpush(rc->drawables, rd);
 }
 
 void render(RenderContext* rc, int width, int height) {
 	for (int i = 0; i < rc->len; i++) {
-		RenderDrawable* rd = rc->drawables[i];
+		RenderDrawable* rd = &(rc->drawables[i]);
 		glBindTexture(GL_TEXTURE_2D, rd->tex);
 		glUseProgram(rc->prog);
 		glBindVertexArray(rd->vao);

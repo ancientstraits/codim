@@ -148,7 +148,7 @@ void text_render_px(TextContext* tc, AVFrame* f) {
 	}
 }
 
-static void setup_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coord_len) {
+static void create_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coord_len) {
 	glGenVertexArrays(1, vao);
 	glGenBuffers(1, vbo);
 	glBindVertexArray(*vao);
@@ -207,7 +207,7 @@ RenderDrawable text_render(TextContext* tc, const char* s, float x, float y) {
 	}
 
 	GLuint vao, vbo;
-	setup_vertices(&vao, &vbo, coords, idx);
+	create_vertices(&vao, &vbo, coords, idx);
 
 	free(coords);
 	return (RenderDrawable) {

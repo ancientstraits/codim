@@ -4,6 +4,25 @@
 
 #define GASSERT(cond, ...) ASSERT(cond, ERROR_GL, __VA_ARGS__)
 
+void setup_vertices(GLfloat* vertices, size_t n_verts, GLuint* vao, GLuint* vbo) {
+	glGenVertexArrays(1, vao);
+	glGenBuffers(1, vbo);
+	glBindVertexArray(*vao);
+	glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * n_verts, vertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0); // in vec3 coord
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat),
+		(void*)(2 * sizeof(GLfloat))); // in vec3 color
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+
 GLuint single_shader(GLenum type, const char* source) {
 	GLuint shader = glCreateShader(type);
 	glShaderSource(shader, 1, &source, NULL);

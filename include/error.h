@@ -46,6 +46,9 @@ typedef enum Error {
 
 	// For errors relating to the Lua API
 	ERROR_SCRIPTING,
+
+	// For errors relating to the gap editor
+	ERROR_GAPEDIT,
 } Error;
 
 extern jmp_buf errbuf;

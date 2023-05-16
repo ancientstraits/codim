@@ -12,13 +12,13 @@ typedef struct {
 } RenderDrawable;
 
 typedef struct {
-	RenderDrawable** drawables;
+	RenderDrawable* drawables;
 	size_t len, capacity;
 	GLuint prog;
 } RenderContext;
 
 RenderContext* render_create();
-void render_add(RenderContext* rc, RenderDrawable* rd);
+void render_add(RenderContext* rc, RenderDrawable rd);
 void render(RenderContext* rc, int width, int height);
 void render_destroy(RenderContext* rc);
 

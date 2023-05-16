@@ -52,7 +52,7 @@ GLfloat vertices[] = {
 };
 const int num_verts = sizeof(vertices) / (sizeof(GLfloat) * 3);
 
-static void setup_vertices(GLuint* vao, GLuint* vbo) {
+static void my_setup_vertices(GLuint* vao, GLuint* vbo) {
 	glGenVertexArrays(1, vao);
 	glGenBuffers(1, vbo);
 	glBindVertexArray(*vao);
@@ -101,7 +101,7 @@ int not_main() {
 
 	TextContext* tc = text_create("sample.ttf", 10);
 	RenderDrawable rd = text_render(tc, "Oliopolig", 60.0, 60.0);
-	render_add(rc, &rd);
+	render_add(rc, rd);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
