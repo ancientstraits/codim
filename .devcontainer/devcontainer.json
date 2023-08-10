@@ -1,5 +1,8 @@
 {
   "image": "mcr.microsoft.com/devcontainers/base:jammy",
   "features": {
+    "ghcr.io/wxw-matt/devcontainer-features/apt:latest": {
+      "packages": "libavcodec-dev libavutil-dev libavformat-dev libswscale-dev libswresample-dev libcglm-dev libfreetype-dev libluajit-5.1-dev"
+    }
   }
 }
