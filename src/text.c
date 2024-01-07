@@ -17,50 +17,12 @@ typedef struct Coord {
 	GLfloat x, y, s, t;
 } Coord;
 
-// ndc(x, w) => normalized x-coord
-// ndc(y, h) => normalized y-coord
-// float ndc(int coord, int dimension) {
-//	return (2.0 * (coord + 0.5) / w) - 1.0;
-// }
-
-static const char* vert_source =
-	"#version 410 core\n"
-
-	"uniform vec2 dimension;"
-	"uniform float atlas_w, atlas_h;"
-	"uniform mat4 model, view, projection;"
-
-
-	"layout (location = 0) in vec4 coord;"
-	"out vec2 texcoord;"
-
-	"float ndc(float coord, float dim) {"
-		"return (2.0 * (coord + 0.5) / dim) - 1.0;"
-	"}"
-
-	"void main() {"
-		"texcoord = vec2(coord.z / atlas_w, coord.w / atlas_h);"
-		"gl_Position = vec4(ndc(coord.x, dimension.x), -ndc(coord.y, dimension.y), 0.0, 1.0);"
-	"}"
-;
-static const char* frag_source = 
-	"#version 410 core\n"
-	"uniform sampler2D tex;"
-	"in vec2 texcoord;"
-
-	"void main() {"
-		"gl_FragColor = vec4(1.0, 1.0, 1.0, texture2D(tex, texcoord).r);"
-	"}"
-;
-
 static void text_load(TextContext* tc, uint32_t c) {
 	TASSERT(!FT_Load_Char(tc->face, c, FT_LOAD_RENDER), "Could not render %c character", c);	
 }
 
-TextContext* text_create(const char* font_path, uint32_t px_size) {
-	TextContext* tc = calloc(1, sizeof *tc);
-
-	// XXX FreeType functions return 0 on success
+void text_init(TextContext* tc, const char* font_path, uint32_t px_size) {
+	// NOTE FreeType functions return 0 on success
 	// Make sure all ASSERT conds for FreeType functions start with `!`
 	TASSERT(!FT_Init_FreeType(&tc->lib), "Failed to initialize FreeType");
 	TASSERT(!FT_New_Face(tc->lib, font_path, 0, &tc->face),
@@ -102,8 +64,8 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 	for (uint8_t c = 0; c < 128; c++) {
 		text_load(tc, c);
 
-		tc->info[c].adv_x  = g->advance.x / 64;
-		tc->info[c].adv_y  = g->advance.y / 64;
+		tc->info[c].adv_x  = g->advance.x / 64.0;
+		tc->info[c].adv_y  = g->advance.y / 64.0;
 		tc->info[c].width  = g->bitmap.width;
 		tc->info[c].height = g->bitmap.rows;
 		tc->info[c].left   = g->bitmap_left;
@@ -121,8 +83,8 @@ TextContext* text_create(const char* font_path, uint32_t px_size) {
 		}
 		x += g->bitmap.width + 1; // the `+ 1` is for padding
 	}
-
-	return tc;
+	tc->space_w = tc->info[' '].adv_x;
+	tc->line_h  = px_size;
 }
 
 // TODO this is only a sample!
@@ -149,6 +111,8 @@ void text_render_px(TextContext* tc, AVFrame* f) {
 }
 
 static void create_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coord_len) {
+	glClearColor(0.0, 0.0, 1.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
 	glGenVertexArrays(1, vao);
 	glGenBuffers(1, vbo);
 	glBindVertexArray(*vao);
@@ -163,14 +127,25 @@ static void create_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coor
 }
 
 // Assume pixel coords for `x` and `y`
-RenderDrawable text_render(TextContext* tc, const char* s, float x, float y) {
+void text_render(TextContext* tc, const char* s, float tx, float ty, RenderDrawable* rd) {
 	const size_t coord_len = 6 * strlen(s);
 
 	Coord* coords = malloc(coord_len * sizeof(Coord));
 	int idx = 0;
+	float x = tx, y = ty;
+
+	printf("%d\n", tc->face->glyph->linearHoriAdvance);
 
 	for (int i = 0; s[i]; i++) {
 		int c = s[i];	
+		if (c == '\n') {
+			x = tx;
+			y -= tc->line_h;
+			continue;
+		}
+		if (c == ' ') {
+			x += tc->space_w;
+		}
 
 		float cx = x + tc->info[c].left;
 		float cy = y + tc->info[c].top;
@@ -210,18 +185,17 @@ RenderDrawable text_render(TextContext* tc, const char* s, float x, float y) {
 	create_vertices(&vao, &vbo, coords, idx);
 
 	free(coords);
-	return (RenderDrawable) {
-		.vao = vao,
-		.vbo = vbo,
-		.tex = tc->tex,
-		.n_verts = idx,
-		.texdim = {tc->atlas_w, tc->atlas_h},
-	};
+
+	rd->vao = vao;
+	rd->vbo = vbo;
+	rd->tex = tc->tex;
+	rd->n_verts = idx;
+	rd->texdim.x = tc->atlas_w;
+	rd->texdim.y = tc->atlas_h;
 }
 
-void text_destroy(TextContext* tc) {
+void text_deinit(TextContext* tc) {
 	FT_Done_Face(tc->face);
 	FT_Done_FreeType(tc->lib);
-	free(tc);
 }
 

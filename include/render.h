@@ -1,12 +1,11 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include <stdint.h>
-#include <cglm/cglm.h>
+#include <cglm/struct.h>
 #include <epoxy/gl.h>
 
 typedef struct {
-	vec2 texdim;
+	vec2s texdim;
 	GLuint tex, vao, vbo;
 	GLuint n_verts;
 } RenderDrawable;
@@ -17,10 +16,11 @@ typedef struct {
 	GLuint prog;
 } RenderContext;
 
-RenderContext* render_create();
+// RenderContext* render_create();
+void render_init(RenderContext* rc);
 void render_add(RenderContext* rc, RenderDrawable rd);
 void render(RenderContext* rc, int width, int height);
-void render_destroy(RenderContext* rc);
+void render_deinit(RenderContext* rc);
 
 #endif // !RENDER_H
 

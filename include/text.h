@@ -21,17 +21,17 @@ typedef struct TextContext {
 	FT_Library lib;
 	FT_Face face;
 	uint32_t atlas_w, atlas_h;
+	float space_w, line_h;
 	GLuint tex;
 
 	TextCharInfo info[128];
 } TextContext;
 
 
-TextContext* text_create(const char* font_path, uint32_t px_size);
+void text_init(TextContext* tc, const char* font_path, uint32_t px_size);
 //void text_load(TextContext* tc, uint32_t c);
-RenderDrawable text_render(TextContext* tc,
-	const char* s, float x, float y);
-void text_destroy(TextContext* tc);
+void text_render(TextContext* tc, const char* s, float x, float y, RenderDrawable* rd);
+void text_deinit(TextContext* tc);
 
 
 #endif // !CODIM_TEXT_H

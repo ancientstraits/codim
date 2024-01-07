@@ -70,81 +70,81 @@ static void my_setup_vertices(GLuint* vao, GLuint* vbo) {
 	glBindVertexArray(0);
 }
 
-int not_main() {
-	switch (ERROR_GET()) {
-	case ERROR_NONE:
-		break;
-	default:
-		LOG("Fatal error");
-		return 1;
-	}
+// int not_main() {
+// 	switch (ERROR_GET()) {
+// 	case ERROR_NONE:
+// 		break;
+// 	default:
+// 		LOG("Fatal error");
+// 		return 1;
+// 	}
 
 
-	OutputContext* oc = output_create("out.mp4",
-		&(OutputAudioOpts) {
-			.sample_rate = 44100,
-		}, &(OutputVideoOpts) {
-			.fps = 24,
-			.width = WIDTH,
-			.height = HEIGHT,
-		}
-	);
+// 	OutputContext* oc = output_create("out.mp4",
+// 		&(OutputAudioOpts) {
+// 			.sample_rate = 44100,
+// 		}, &(OutputVideoOpts) {
+// 			.fps = 24,
+// 			.width = WIDTH,
+// 			.height = HEIGHT,
+// 		}
+// 	);
 
-	output_open(oc);
+// 	output_open(oc);
 
-	float at = 0;
-	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
-	float atincr2 = atincr / oc->acc->sample_rate;
+// 	float at = 0;
+// 	float atincr = 2 * M_PI * 110.0 / oc->acc->sample_rate;
+// 	float atincr2 = atincr / oc->acc->sample_rate;
 
-	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
-	RenderContext* rc = render_create();
+// 	GfxContext* gc = gfx_create(WIDTH, HEIGHT);
+// 	RenderContext* rc = render_create();
 
-	TextContext* tc = text_create("sample.ttf", 10);
-	RenderDrawable rd = text_render(tc, "Oliopolig", 60.0, 60.0);
-	render_add(rc, rd);
+// 	TextContext* tc = text_create("sample.ttf", 10);
+// 	RenderDrawable rd = text_render(tc, "Oliopolig", 60.0, 60.0);
+// 	render_add(rc, rd);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+// 	glEnable(GL_BLEND);
+// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	while (output_is_open(oc)) {
-		if (output_get_seconds(oc) >= 10.0)
-			output_close(oc);
+// 	while (output_is_open(oc)) {
+// 		if (output_get_seconds(oc) >= 10.0)
+// 			output_close(oc);
 
-		if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
-			glClearColor(0.0, 0.5, 1.0, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT);
+// 		if (output_get_encode_type(oc) == OUTPUT_TYPE_VIDEO) {
+// 			glClearColor(0.0, 0.5, 1.0, 1.0);
+// 			glClear(GL_COLOR_BUFFER_BIT);
 			
-			//glUseProgram(prog);
-			//glBindVertexArray(vao);
-			//glDrawArrays(GL_TRIANGLE_STRIP, 0, num_verts);
-			render(rc, WIDTH, HEIGHT);
+// 			//glUseProgram(prog);
+// 			//glBindVertexArray(vao);
+// 			//glDrawArrays(GL_TRIANGLE_STRIP, 0, num_verts);
+// 			render(rc, WIDTH, HEIGHT);
 
-			gfx_render(gc, oc->vf);
+// 			gfx_render(gc, oc->vf);
 
-			output_encode_video(oc);
-		} else {
-			int16_t *data = (int16_t *)oc->afd->data[0];
-			for (int i = 0; i < oc->afd->nb_samples; i++) {
-				int v = 10000 * sin(at);
-				for (int j = 0; j < oc->acc->ch_layout.nb_channels; j++)
-					*data++ = v;
-				at += atincr;
-				atincr += atincr2;
-			}
-			output_encode_audio(oc);
-		}
-	}
+// 			output_encode_video(oc);
+// 		} else {
+// 			int16_t *data = (int16_t *)oc->afd->data[0];
+// 			for (int i = 0; i < oc->afd->nb_samples; i++) {
+// 				int v = 10000 * sin(at);
+// 				for (int j = 0; j < oc->acc->ch_layout.nb_channels; j++)
+// 					*data++ = v;
+// 				at += atincr;
+// 				atincr += atincr2;
+// 			}
+// 			output_encode_audio(oc);
+// 		}
+// 	}
 
-	//glDeleteVertexArrays(1, &vao);
-	//glDeleteBuffers(1, &vbo);
-	//glDeleteProgram(prog);
+// 	//glDeleteVertexArrays(1, &vao);
+// 	//glDeleteBuffers(1, &vbo);
+// 	//glDeleteProgram(prog);
 
-	text_destroy(tc);
-	gfx_destroy(gc);
-	output_destroy(oc);
+// 	text_destroy(tc);
+// 	gfx_destroy(gc);
+// 	output_destroy(oc);
 
-	return 0;
-}
+// 	return 0;
+// }
 
 int main(int argc, char** argv) {
 	switch (ERROR_GET()) {

@@ -69,9 +69,10 @@ OutputContext* output_create(
 		init_codec(oc->fc->oformat->video_codec,
 			oc->fc, &oc->vc, &oc->vp, &oc->vs, &oc->vcc);
 
-		oc->vcc->width	 = vo->width;
-		oc->vcc->height	= vo->height;
+		oc->vcc->width	   = vo->width;
+		oc->vcc->height    = vo->height;
 		oc->vcc->time_base = (AVRational){1, vo->fps};
+		oc->vcc->bit_rate  = 800000;
 		oc->vcc->pix_fmt   = AV_PIX_FMT_YUV420P;
 	}
 

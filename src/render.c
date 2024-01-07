@@ -3,6 +3,7 @@
 #define RASSERT(cond, ...) ASSERT(cond, ERROR_RENDER, __VA_ARGS__)
 #include "glutil.h"
 #include "render.h"
+#define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"
 
 #define UNIFORM(prog, name, type, ...) \
@@ -34,19 +35,26 @@ static const char* frag_code =
 	"in vec2 texcoord;"
 
 	"void main() {"
+		"gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);"
 		"gl_FragColor = vec4(1.0, 1.0, 1.0, texture2D(tex, texcoord).r);"
 	"}"
 ;
 
-RenderContext* render_create(void) {
-	RenderContext* rc = malloc(sizeof* rc);
+// RenderContext* render_create(void) {
+// 	RenderContext* rc = malloc(sizeof* rc);
 
+// 	rc->len = 0;
+// 	rc->capacity = 1;
+// 	rc->drawables = NULL; // stb_ds array
+// 	rc->prog = shader_prog(vert_code, frag_code);
+
+// 	return rc;
+// }
+void render_init(RenderContext* rc) {
 	rc->len = 0;
 	rc->capacity = 1;
 	rc->drawables = NULL; // stb_ds array
 	rc->prog = shader_prog(vert_code, frag_code);
-
-	return rc;
 }
 
 void render_add(RenderContext* rc, RenderDrawable rd) {
@@ -57,21 +65,22 @@ void render_add(RenderContext* rc, RenderDrawable rd) {
 void render(RenderContext* rc, int width, int height) {
 	for (int i = 0; i < rc->len; i++) {
 		RenderDrawable* rd = &(rc->drawables[i]);
+		// printf("(%d, %d)\n", rd->texdim[0], rd->texdim[1]);
 		glBindTexture(GL_TEXTURE_2D, rd->tex);
 		glUseProgram(rc->prog);
 		glBindVertexArray(rd->vao);
 
 		UNIFORM(rc->prog, "windim", 2f, width, height);
-		UNIFORM(rc->prog, "texdim", 2f, rd->texdim[0], rd->texdim[1]);
+		UNIFORM(rc->prog, "texdim", 2f, rd->texdim.x, rd->texdim.y);
 
 		glDrawArrays(GL_TRIANGLES, 0, rd->n_verts);
 	}
 }
 
-void render_destroy(RenderContext* rc) {
+void render_deinit(RenderContext* rc) {
 	arrfree(rc->drawables);
 	glDeleteProgram(rc->prog);
 	free(rc->drawables);
-	free(rc);
+	// free(rc);
 }
 
