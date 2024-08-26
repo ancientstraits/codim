@@ -13,10 +13,6 @@
 
 #define TASSERT(cond, ...) ASSERT(cond, ERROR_TEXT, __VA_ARGS__)
 
-typedef struct Coord {
-	GLfloat x, y, s, t;
-} Coord;
-
 static void text_load(TextContext* tc, uint32_t c) {
 	TASSERT(!FT_Load_Char(tc->face, c, FT_LOAD_RENDER), "Could not render %c character", c);	
 }
@@ -110,31 +106,31 @@ void text_render_px(TextContext* tc, AVFrame* f) {
 	}
 }
 
-static void create_vertices(GLuint* vao, GLuint* vbo, Coord* coords, size_t coord_len) {
-	glClearColor(0.0, 0.0, 1.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+void text_coord_create_vertices(GLuint* vao, GLuint* vbo, TextCoord* coords, size_t coord_len) {
+	// glClearColor(0.0, 0.0, 1.0, 1.0);
+	// glClear(GL_COLOR_BUFFER_BIT);
 	glGenVertexArrays(1, vao);
 	glGenBuffers(1, vbo);
 	glBindVertexArray(*vao);
 	glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-	glBufferData(GL_ARRAY_BUFFER, coord_len * sizeof(Coord), coords, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, coord_len * sizeof(TextCoord), coords, GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Coord), (void*)0); // in vec4 coord
+	// glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(TextCoord), (void*)0); // in vec4 coord
+	// glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(TextCoord), (void*)0); // in vec2 pos
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(TextCoord), (void*)(2*sizeof(GLfloat))); // in vec2 tex_coord
+	glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
-// Assume pixel coords for `x` and `y`
-void text_render(TextContext* tc, const char* s, float tx, float ty, RenderDrawable* rd) {
-	const size_t coord_len = 6 * strlen(s);
-
-	Coord* coords = malloc(coord_len * sizeof(Coord));
+size_t text_coord_build(TextCoord* out, TextContext* tc, const char* s, float tx, float ty, float* ox, float* oy) {
 	int idx = 0;
 	float x = tx, y = ty;
-
-	printf("%d\n", tc->face->glyph->linearHoriAdvance);
+	float aw = tc->atlas_w, ah = tc->atlas_h;
 
 	for (int i = 0; s[i]; i++) {
 		int c = s[i];	
@@ -158,19 +154,19 @@ void text_render(TextContext* tc, const char* s, float tx, float ty, RenderDrawa
 			continue;
 
 		// coord = (Coord){x, y, s, t};
-		// Still use pixel coords! Will convert to NDC in vertex shader.
-		// For s, use pixel coord, but for t, use 0.0 to 1.0 texcoords.
+		// Use normalized coords, since computing them first will be
+		// faster than trying to do them each frame with shaders.
 		// 1  3
 		// | /|
 		// |/ |
 		// 2  4
-		coords[idx++] = (Coord){cx,     cy,     off,     0.0}; // Upper Left
-		coords[idx++] = (Coord){cx,     cy - h, off,     h}; // Lower Left
-		coords[idx++] = (Coord){cx + w, cy,     off + w, 0.0}; // Upper Right
+		out[idx++] = (TextCoord){cx,     cy,     off  /  aw, 0.0}; // Upper Left
+		out[idx++] = (TextCoord){cx,     cy - h, off  /  aw, h/ah}; // Lower Left
+		out[idx++] = (TextCoord){cx + w, cy,     (off+w)/aw, 0.0}; // Upper Right
 	
-		coords[idx++] = (Coord){cx,     cy - h, off,     h}; // Lower Left
-		coords[idx++] = (Coord){cx + w, cy,     off + w, 0.0}; // Upper Right
-		coords[idx++] = (Coord){cx + w, cy - h, off + w, h}; // Lower Right
+		out[idx++] = (TextCoord){cx,     cy - h, off  /  aw, h/ah}; // Lower Left
+		out[idx++] = (TextCoord){cx + w, cy,     (off+w)/aw, 0.0}; // Upper Right
+		out[idx++] = (TextCoord){cx + w, cy - h, (off+w)/aw, h/ah}; // Lower Right
 
 		//coords[idx++] = (Coord){-0.5, 0.5, 0.0, 1.0}; // Upper Left
 		//coords[idx++] = (Coord){-0.5, -0.5, 0.0, 0.0}; // Lower Left
@@ -181,20 +177,44 @@ void text_render(TextContext* tc, const char* s, float tx, float ty, RenderDrawa
 		y += tc->info[c].adv_y;
 	}
 
+	if (ox) *ox = x;
+	if (oy) *oy = y;
+
+	return idx;
+}
+
+// Assume pixel coords for `x` and `y`
+RenderDrawable text_render(TextContext* tc, const char* s, float tx, float ty) {
+	const size_t coord_len = 6 * strlen(s);
+
+	TextCoord* coords = malloc(coord_len * sizeof(TextCoord));
+
+	size_t n_coords = text_coord_build(coords, tc, s, tx, ty, NULL, NULL);
+
 	GLuint vao, vbo;
-	create_vertices(&vao, &vbo, coords, idx);
+	text_coord_create_vertices(&vao, &vbo, coords, n_coords);
 
 	free(coords);
 
-	rd->vao = vao;
-	rd->vbo = vbo;
-	rd->tex = tc->tex;
-	rd->n_verts = idx;
-	rd->texdim.x = tc->atlas_w;
-	rd->texdim.y = tc->atlas_h;
+	return (RenderDrawable) {
+		.vao = vao,
+		// .vbo = vbo,
+		.tex = tc->tex,
+		.n_verts = n_coords,
+		.draw_type = RENDER_DRAW_XYST,
+		.draw_flags = RENDER_DRAW_FLAG_R_TEXTURE,
+	};
+
+	// rd->vao = vao;
+	// rd->vbo = vbo;
+	// rd->tex = tc->tex;
+	// rd->n_verts = idx;
+	// rd->texdim.x = tc->atlas_w;
+	// rd->texdim.y = tc->atlas_h;
 }
 
 void text_deinit(TextContext* tc) {
+	glDeleteTextures(1, &tc->tex);
 	FT_Done_Face(tc->face);
 	FT_Done_FreeType(tc->lib);
 }

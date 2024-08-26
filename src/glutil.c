@@ -43,7 +43,10 @@ GLuint single_shader(GLenum type, const char* source) {
 GLuint shader_prog(const char* vert_source, const char* frag_source) {
 	GLuint vert_shader = single_shader(GL_VERTEX_SHADER,   vert_source);
 	GLuint frag_shader = single_shader(GL_FRAGMENT_SHADER, frag_source);
+	return shader_prog_from_ids(vert_shader, frag_shader);
+}
 
+GLuint shader_prog_from_ids(GLuint vert_shader, GLuint frag_shader) {
 	GLuint prog = glCreateProgram();
 	glAttachShader(prog, vert_shader);
 	glAttachShader(prog, frag_shader);
@@ -59,4 +62,3 @@ GLuint shader_prog(const char* vert_source, const char* frag_source) {
 
 	return prog;
 }
-

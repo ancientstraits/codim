@@ -1,6 +1,7 @@
 #include "lapi.h"
 #include "text.h"
 #include "render.h"
+#include "editor.h"
 
 #define MAKE_METAMETHODS(lapi_name, api_name, type_name) \
 static int lapi_##lapi_name##_gc(lua_State* L) { \
@@ -36,13 +37,28 @@ int lapi_renderer_new(lua_State* L) {
     return 1;
 }
 static int lapi_renderer_add(lua_State* L) {
-    RenderContext*  rc = lua_touserdata(L, 1);
+    RenderContext* rc = lua_touserdata(L, 1);
+    printf("%p\n", luaL_testudata(L, 1, "codim.renderer"));
+
+    RenderDrawable* rd;
+    if (luaL_testudata(L, 2, "codim.editor")) {
+        EditorContext* ec = lua_touserdata(L, 2);
+        rd = &ec->rd;
+    } else {
+        rd = lua_touserdata(L, 2);
+    }
+
+    render_add(rc, rd);
+    return 0;
+}
+static int lapi_renderer_del(lua_State* L) {
+    RenderContext* rc = lua_touserdata(L, 1);
     RenderDrawable* rd = lua_touserdata(L, 2);
-    render_add(rc, *rd);
+    render_del(rc, rd);
     return 0;
 }
 static int lapi_renderer_render(lua_State* L) {
-    RenderContext* rc = luaL_checkudata(L, 1, "codim.renderer");
+    RenderContext* rc = lua_touserdata(L, 1);
     int width  = luaL_checkint(L, 2);
     int height = luaL_checkint(L, 3);
 
@@ -70,15 +86,36 @@ static int lapi_text_render(lua_State* L) {
     float y = lua_tonumber(L, 4);
 
     RenderDrawable* rd = lua_newuserdata(L, sizeof(RenderDrawable));
-    text_render(tc, s, x, y, rd);
+    *rd = text_render(tc, s, x, y);
 
     return 1;
 }
 MAKE_METAMETHODS(text, text, TextContext);
 
+int lapi_editor_new(lua_State* L) {
+    TextContext* tc = luaL_checkudata(L, 1, "codim.text");
+    int x = lua_tointeger(L, 2), y = lua_tointeger(L, 3);
+
+    EditorContext* ec = lua_newuserdata(L, sizeof(EditorContext));
+    luaL_getmetatable(L, "codim.editor");
+    lua_setmetatable(L, -2);
+
+    editor_init(ec, tc, x, y, 0, 0);
+    return 1;
+}
+static int lapi_editor_insert(lua_State* L) {
+    EditorContext* ec = lua_touserdata(L, 1);
+    editor_insert(ec, lua_tostring(L, 2));
+    return 0;
+}
+
+// }
+MAKE_METAMETHODS(editor, editor, EditorContext);
+
 luaL_Reg renderer_api[] = {
     DEFINE_METAMETHODS(renderer),
     {"add",     lapi_renderer_add},
+    {"del",     lapi_renderer_del},
     {"render",  lapi_renderer_render},
     {0}
 };
@@ -87,10 +124,26 @@ luaL_Reg text_api[] = {
     {"render", lapi_text_render},
     {0}
 };
+luaL_Reg editor_api[] = {
+    DEFINE_METAMETHODS(editor),
+    {"insert", lapi_editor_insert},
+    {0}
+};
+
+luaL_Reg lapi_api[] = {
+    {"Renderer", lapi_renderer_new},
+    {"Text",     lapi_text_new},
+    {"Editor",   lapi_editor_new},
+    {0}
+};
 
 void lapi_add_bindings(lua_State* L) {
     luaL_newmetatable(L, "codim.renderer");
     lapi_make_api_table(L, renderer_api, lua_gettop(L));
+
     luaL_newmetatable(L, "codim.text");
     lapi_make_api_table(L, text_api, lua_gettop(L));
+
+    luaL_newmetatable(L, "codim.editor");
+    lapi_make_api_table(L, editor_api, lua_gettop(L));
 }

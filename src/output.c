@@ -37,6 +37,8 @@ OutputContext* output_create(
 
 	int ret;
 
+	av_log_set_level(AV_LOG_QUIET);
+
 	OutputContext* oc = calloc(1, sizeof *oc);
 	if (!oc) DIE_ERRNO(ERROR_ALLOC);
 
@@ -230,6 +232,7 @@ void output_encode_audio(OutputContext* oc) {
 		oc->acc->sample_rate, oc->acc->sample_rate, AV_ROUND_UP
 	);
 
+
 	errnum = swr_convert(oc->aconv, oc->af->data, anbsd,
 		(const uint8_t**)oc->afd->data, oc->anbs
 	);
@@ -259,6 +262,8 @@ void output_close(OutputContext* oc) {
 		else
 			output_encode_audio(oc);
 	}
+
+	// printf("olleh.");
 
 	errnum = av_write_trailer(oc->fc);
 	if (errnum < 0) ODIE("Could not write trailer: %s", av_err2str(errnum));

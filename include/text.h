@@ -27,11 +27,18 @@ typedef struct TextContext {
 	TextCharInfo info[128];
 } TextContext;
 
+typedef struct TextCoord {
+	GLfloat x, y, s, t;
+} TextCoord;
+
 
 void text_init(TextContext* tc, const char* font_path, uint32_t px_size);
 //void text_load(TextContext* tc, uint32_t c);
-void text_render(TextContext* tc, const char* s, float x, float y, RenderDrawable* rd);
+RenderDrawable text_render(TextContext* tc, const char* s, float x, float y);
 void text_deinit(TextContext* tc);
+
+void text_coord_create_vertices(GLuint* vao, GLuint* vbo, TextCoord* coords, size_t coord_len);
+size_t text_coord_build(TextCoord* out, TextContext* tc, const char* s, float tx, float ty, float* ox, float* oy);
 
 
 #endif // !CODIM_TEXT_H

@@ -49,6 +49,12 @@ typedef enum Error {
 
 	// For errors relating to the gap editor
 	ERROR_GAPEDIT,
+
+	// For errors relating to audio recording
+	ERROR_ARECORD,
+
+	// For errors relating to the virtual text editor
+	ERROR_EDITOR,
 } Error;
 
 extern jmp_buf errbuf;

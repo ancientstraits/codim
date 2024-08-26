@@ -7,8 +7,7 @@
 #include <lualib.h>
 
 // constructors
-int lapi_renderer_new(lua_State* L);
-int lapi_text_new(lua_State* L);
+extern luaL_Reg lapi_api[];
 
 void lapi_add_bindings(lua_State* L);
 
