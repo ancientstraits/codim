@@ -37,6 +37,8 @@ void text_init(TextContext* tc, const char* font_path, uint32_t px_size);
 RenderDrawable text_render(TextContext* tc, const char* s, float x, float y);
 void text_deinit(TextContext* tc);
 
+void text_render_px(TextContext* tc, AVFrame* f);
+
 void text_coord_create_vertices(GLuint* vao, GLuint* vbo, TextCoord* coords, size_t coord_len);
 size_t text_coord_build(TextCoord* out, TextContext* tc, const char* s, float tx, float ty, float* ox, float* oy);
 

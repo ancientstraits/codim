@@ -1,8 +1,8 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include <cglm/struct.h>
 #include <epoxy/gl.h>
+#include "linmath.h"
 
 typedef enum {
 	RENDER_DRAW_XYST,  // Requires texture
@@ -30,8 +30,9 @@ typedef struct {
 	GLuint tex, vao;
 	GLuint prog;
 	GLuint n_verts;
+
 	// To transform the object
-	mat4s model;
+	mat4x4 model;
 } RenderDrawable;
 
 typedef struct {

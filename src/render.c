@@ -3,7 +3,7 @@
 #define RASSERT(cond, ...) ASSERT(cond, ERROR_RENDER, __VA_ARGS__)
 #include "glutil.h"
 #include "render.h"
-#define STB_DS_IMPLEMENTATION
+// #define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"
 
 #define UNIFORM(prog, name, type, ...) \
@@ -80,22 +80,32 @@ static const char* frag_code_no_tex =
 static const char* vert_codes[] = {
 	[RENDER_DRAW_XYST] =
 		"#version 410 core\n"
+
 		"uniform vec2 windim;"
+		"uniform mat4 model;"
+
 		"layout (location = 0) in vec2 pos;"
 		"layout (location = 1) in vec2 tcoord;"
 		"out vec2 texcoord;"
+
 
 		VERT_CODE_UTIL_FNS
 
 		"void main() {"
 			"texcoord = tcoord;"
-			"vec2 norm = ndc(pos, windim);"
+
+			"vec4 c = model * vec4(pos, 0.0, 1.0);"
+			"vec2 norm = ndc(c.xy, windim);"
+			// "vec2 norm = ndc(pos, windim);"
 			"gl_Position = vec4(norm.x, -norm.y, 0.0, 1.0);"
 		"}"
 	,
 	[RENDER_DRAW_XY] =
 		"#version 410 core\n"
+
 		"uniform vec2 windim;"
+		"uniform mat4 model;"
+
 		"layout (location = 0) in vec2 coord;"
 
 		"out vec4 color;"
@@ -103,14 +113,18 @@ static const char* vert_codes[] = {
 		VERT_CODE_UTIL_FNS
 
 		"void main() {"
-			"vec2 norm = ndc(coord, windim);"
+			"vec4 c = model * vec4(coord, 0.0, 1.0);"
+			"vec2 norm = ndc(c.xy, windim);"
 			"color = vec4(1.0, 1.0, 1.0, 1.0);"
 			"gl_Position = vec4(norm.x, -norm.y, 0.0, 1.0);"
 		"}"
 	,
 	[RENDER_DRAW_XYRGB] =
 		"#version 410 core\n"
+
 		"uniform vec2 windim;"
+		"uniform mat4 model;"
+
 		"layout (location = 0) in vec2 coord;"
 		"layout (location = 1) in vec3 col;"
 
@@ -119,7 +133,8 @@ static const char* vert_codes[] = {
 		VERT_CODE_UTIL_FNS
 
 		"void main() {"
-			"vec2 norm = ndc(coord, windim);"
+			"vec4 c = model * vec4(coord, 0.0, 1.0);"
+			"vec2 norm = ndc(c.xy, windim);"
 			"color = vec4(col, 1.0);"
 			"gl_Position = vec4(norm.x, -norm.y, 0.0, 1.0);"
 		"}"
@@ -197,7 +212,9 @@ void render(RenderContext* rc, int width, int height) {
 		glUseProgram(rd->prog);
 		glBindVertexArray(rd->vao);
 
+
 		UNIFORM(rd->prog, "windim", 2f, width, height);
+		UNIFORM(rd->prog, "model", Matrix4fv, 1, GL_FALSE, (float*)rd->model);
 
 		glDrawArrays(GL_TRIANGLES, 0, rd->n_verts);
 	}

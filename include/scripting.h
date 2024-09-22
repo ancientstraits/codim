@@ -25,7 +25,7 @@ typedef struct ScriptingState {
 	// RenderContext* rc;
 	// TextContext* tc;
 } ScriptingState;
-extern ScriptingState state;
+extern ScriptingState scripting_state;
 
 void scripting_exec(const char* scriptname);
 

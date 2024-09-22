@@ -55,6 +55,8 @@ typedef enum Error {
 
 	// For errors relating to the virtual text editor
 	ERROR_EDITOR,
+
+	// For errors relating to the queue that is used for animation
 } Error;
 
 extern jmp_buf errbuf;

@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <cglm/cglm.h>
+// #include <cglm/cglm.h>
 #include <epoxy/gl.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
 #include "error.h"
-#include "glutil.h"
 #include "text.h"
 
 #define TASSERT(cond, ...) ASSERT(cond, ERROR_TEXT, __VA_ARGS__)
@@ -196,7 +195,9 @@ RenderDrawable text_render(TextContext* tc, const char* s, float tx, float ty) {
 
 	free(coords);
 
-	return (RenderDrawable) {
+	mat4x4_identity(NULL);
+
+	RenderDrawable ret = {
 		.vao = vao,
 		// .vbo = vbo,
 		.tex = tc->tex,
@@ -204,6 +205,8 @@ RenderDrawable text_render(TextContext* tc, const char* s, float tx, float ty) {
 		.draw_type = RENDER_DRAW_XYST,
 		.draw_flags = RENDER_DRAW_FLAG_R_TEXTURE,
 	};
+	mat4x4_identity(ret.model);
+	return ret;
 
 	// rd->vao = vao;
 	// rd->vbo = vbo;

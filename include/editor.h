@@ -12,6 +12,7 @@ typedef struct EditorContext {
 	TextCoord* coords;
 	size_t capacity;
 	GLuint vbo;
+	
 	RenderDrawable rd;
 } EditorContext;
 
@@ -23,6 +24,7 @@ typedef enum EditorSeekType {
 
 void editor_init(EditorContext* ec, TextContext* tc, int x, int y, int w, int h);
 void editor_insert(EditorContext* ec, const char* text);
+void editor_insert_char(EditorContext* ec, char c);
 void editor_delete(EditorContext* ec, EditorSeekType seek_type, size_t start, size_t end);
 void editor_move_cursor(EditorContext* ec, EditorSeekType seek_type, int offset);
 size_t editor_get_cursor_pos(EditorContext* ec);

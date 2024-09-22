@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <epoxy/gl.h>
 
+#include "obj/luagen.h"
 #include "arecord.h"
 #include "output.h"
 #include "gfx.h"
@@ -28,12 +29,12 @@
 // 	// TextContext* tc;
 // } state = {0};
 
-ScriptingState state;
+ScriptingState scripting_state;
 
 static int api_arecord(lua_State* L) {
     const char* prompt = lua_isnil(L, 1) ? NULL : lua_tostring(L, 1);
-    arecord_prompt_and_record(state.arc, prompt);
-    ARecordUserData udata = arecord_get_data_copy(state.arc);
+    arecord_prompt_and_record(scripting_state.arc, prompt);
+    ARecordUserData udata = arecord_get_data_copy(scripting_state.arc);
 
     // TODO convert this to userdata to make it faster
     lua_createtable(L, 2*udata.idx, 0);
@@ -47,25 +48,25 @@ static int api_arecord(lua_State* L) {
 }
 
 static int api_output(lua_State* L) {
-    state.info.set    = 1;
-    state.info.output = GET_ELEM(L, 1, string,  "file");
-    state.info.width  = GET_ELEM(L, 1, integer, "width");
-    state.info.height = GET_ELEM(L, 1, integer, "height");
-    state.info.fps    = GET_ELEM(L, 1, integer, "fps");
-    state.info.sample_rate = GET_ELEM(L, 1, integer, "sample_rate");
+    scripting_state.info.set    = 1;
+    scripting_state.info.output = GET_ELEM(L, 1, string,  "file");
+    scripting_state.info.width  = GET_ELEM(L, 1, integer, "width");
+    scripting_state.info.height = GET_ELEM(L, 1, integer, "height");
+    scripting_state.info.fps    = GET_ELEM(L, 1, integer, "fps");
+    scripting_state.info.sample_rate = GET_ELEM(L, 1, integer, "sample_rate");
 
-    state.oc = output_create(state.info.output,
+    scripting_state.oc = output_create(scripting_state.info.output,
         &(OutputAudioOpts){
-            // .sample_rate = state.info.sample_rate,
+            // .sample_rate = scripting_state.info.sample_rate,
             .sample_rate = 44100,
         }, &(OutputVideoOpts){
-            .width  = state.info.width,
-            .height = state.info.height,
-            .fps    = state.info.fps,
+            .width  = scripting_state.info.width,
+            .height = scripting_state.info.height,
+            .fps    = scripting_state.info.fps,
         }
     );
-    state.gc = gfx_create(state.info.width, state.info.height);
-    state.arc = arecord_create(state.info.sample_rate);
+    scripting_state.gc = gfx_create(scripting_state.info.width, scripting_state.info.height);
+    scripting_state.arc = arecord_create(scripting_state.info.sample_rate);
 
     return 0;
 }
@@ -81,8 +82,13 @@ static int api_clear(lua_State* L) {
     return 0;
 }
 static int api_stop(lua_State* L) {
-    state.stop_rendering = 1;
+    scripting_state.stop_rendering = 1;
     return 0;
+}
+static int api_getmetatable(lua_State* L) {
+    const char* key = luaL_checkstring(L, 1);
+    luaL_getmetatable(L, key);
+    return 1;
 }
 
 luaL_Reg api[] = {
@@ -90,6 +96,7 @@ luaL_Reg api[] = {
 	{"stop",     api_stop},
     {"output",   api_output},
     {"arecord",  api_arecord},
+    {"getmetatable", api_getmetatable},
 	{0},
 };
 static int preload_codim(lua_State* L) {
@@ -123,7 +130,7 @@ static void print_stack(lua_State* L) {
 
 static void make_video(lua_State* L, int audio_cb, int video_cb) {
 // static void make_video(lua_State* L, int video_cb) {
-    if (!state.info.set)
+    if (!scripting_state.info.set)
         luaL_error(L, "You need to call `codim.output()`!");
 
     // RenderContext rc;
@@ -135,29 +142,29 @@ static void make_video(lua_State* L, int audio_cb, int video_cb) {
     // render_add(&rc, rd);
 
     size_t vframeno = 0, aframeno = 0;
-    printf("%d\n", state.oc->acc->ch_layout.nb_channels);
-    output_open(state.oc);
-    while (output_is_open(state.oc)) {
+    printf("%d\n", scripting_state.oc->acc->ch_layout.nb_channels);
+    output_open(scripting_state.oc);
+    while (output_is_open(scripting_state.oc)) {
         // TODO I feel like it should break if rendering is over. That would feel more intuitive.
-        if (state.stop_rendering)
-            output_close(state.oc);
+        if (scripting_state.stop_rendering)
+            output_close(scripting_state.oc);
 
-        if (output_get_encode_type(state.oc) == OUTPUT_TYPE_VIDEO) {
+        if (output_get_encode_type(scripting_state.oc) == OUTPUT_TYPE_VIDEO) {
             lua_pushvalue(L, video_cb); // video callback
-            lua_pushnumber(L, ((double)vframeno/(double)state.info.fps)); // argument `t`
+            lua_pushnumber(L, ((double)vframeno/(double)scripting_state.info.fps)); // argument `t`
             // print_stack(L);
             SASSERT(!lua_pcall(L, 1, 0, 0), "Error running video(): %s", lua_tostring(L, -1));
 
             // glClear(GL_COLOR_BUFFER_BIT);
-            // render(state.rc, sr->width, sr->height);
-            gfx_render(state.gc, state.oc->vf);
-            output_encode_video(state.oc);
+            // render(scripting_state.rc, sr->width, sr->height);
+            gfx_render(scripting_state.gc, scripting_state.oc->vf);
+            output_encode_video(scripting_state.oc);
             vframeno++;
-        } else if (output_get_encode_type(state.oc) == OUTPUT_TYPE_AUDIO) {
-            int16_t* data = (int16_t*)state.oc->afd->data[0];
-            for (int i = 0; i < state.oc->afd->nb_samples; i++) {
+        } else if (output_get_encode_type(scripting_state.oc) == OUTPUT_TYPE_AUDIO) {
+            int16_t* data = (int16_t*)scripting_state.oc->afd->data[0];
+            for (int i = 0; i < scripting_state.oc->afd->nb_samples; i++) {
                 lua_pushvalue(L, audio_cb);
-                lua_pushnumber(L, ((double)aframeno/(double)state.info.sample_rate));
+                lua_pushnumber(L, ((double)aframeno/(double)scripting_state.info.sample_rate));
                 SASSERT(!lua_pcall(L, 1, 2, 0), "Error running audio(): %s", lua_tostring(L, -1));
 
                 int16_t left  = lua_tointeger(L, -1);
@@ -168,20 +175,27 @@ static void make_video(lua_State* L, int audio_cb, int video_cb) {
                 // lua_pop(L, 1);
                 aframeno++;
             }
-            lua_pop(L, 2*state.oc->afd->nb_samples);
+            lua_pop(L, 2*scripting_state.oc->afd->nb_samples);
 
-            output_encode_audio(state.oc);
+            output_encode_audio(scripting_state.oc);
         }
     }
 
     lua_close(L);
 
-    // output_close(state.oc);
+    // output_close(scripting_state.oc);
     
-    // render_destroy(state.rc);
-    gfx_destroy(state.gc);
-    output_destroy(state.oc);
-    arecord_destroy(state.arc);
+    // render_destroy(scripting_state.rc);
+    gfx_destroy(scripting_state.gc);
+    output_destroy(scripting_state.oc);
+    arecord_destroy(scripting_state.arc);
+}
+
+void add_luagen_bindings(lua_State* L, int preload) {
+    for (int i = 0; luagen_entries[i].name; i++) {
+        luaL_loadbuffer(L, luagen_entries[i].code, luagen_entries[i].size, luagen_entries[i].name);
+        lua_setfield(L, preload, luagen_entries[i].name);
+    }
 }
 
 void scripting_exec(const char* scriptname) {
@@ -192,11 +206,12 @@ void scripting_exec(const char* scriptname) {
 	lua_getglobal(L, "package");
 	lua_getfield(L, -1, "preload");
 	lua_pushcfunction(L, preload_codim);
-	lua_setfield(L, -2, "codim");
+	lua_setfield(L, -2, "codim.internal");
+    add_luagen_bindings(L, lua_gettop(L));
 
     lapi_add_bindings(L);
 
-    SASSERT(!luaL_loadfile(L, scriptname), "Could not load script %s", scriptname);
+    SASSERT(!luaL_loadfile(L, scriptname), "Could not load script %s due to %s", scriptname, lua_tostring(L, -1));
     SASSERT(!lua_pcall(L, 0, 1, 0), "Error running script: %s", lua_tostring(L, -1));
 
     lua_getfield(L, -1, "video");

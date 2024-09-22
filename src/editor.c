@@ -4,6 +4,7 @@
 #include "editor.h"
 #include "error.h"
 #define EASSERT(cond, ...) ASSERT(cond, ERROR_EDITOR, __VA_ARGS__);
+#include "queue.h"
 
 void editor_init(EditorContext* ec, TextContext* tc, int x, int y, int w, int h) {
     ec->capacity = 4096; // Estimate; replace this with calculations later
@@ -12,8 +13,8 @@ void editor_init(EditorContext* ec, TextContext* tc, int x, int y, int w, int h)
     ec->coords = malloc(ec->capacity * sizeof(TextCoord));
     ec->gap_start = ec->buffer;
     ec->gap_end = ec->buffer + ec->capacity;
-    ec->x = x;
-    ec->y = y;
+    // ec->x = x;
+    // ec->y = y;
 
     text_coord_create_vertices(&ec->rd.vao, &ec->vbo, NULL, ec->capacity); // Check if `&(TextCoord){}` can be replaced with `NULL`
 
@@ -21,6 +22,9 @@ void editor_init(EditorContext* ec, TextContext* tc, int x, int y, int w, int h)
     ec->rd.draw_flags = RENDER_DRAW_FLAG_R_TEXTURE;
     ec->rd.n_verts    = 0;
     ec->rd.tex        = tc->tex;
+    mat4x4_identity(ec->rd.model);
+    mat4x4_translate(ec->rd.model, x, y, 0);
+    // ec->rd.model      = glms_mat4_identity();
 }
 
 void editor_deinit(EditorContext* ec) {
@@ -30,8 +34,10 @@ void editor_deinit(EditorContext* ec) {
 void editor_update(EditorContext* ec) {
     ec->gap_start[0] = 0; // null terminator trick
 
+    printf("'%s', %llu\n", ec->buffer, ec->gap_end - (ec->buffer + ec->capacity));
+
     float ox, oy;
-    size_t n_coords = text_coord_build(ec->coords, ec->tc, ec->buffer, ec->x, ec->y, &ox, &oy);
+    size_t n_coords = text_coord_build(ec->coords, ec->tc, ec->buffer, 0, 0, &ox, &oy);
     n_coords += text_coord_build(&ec->coords[n_coords], ec->tc, ec->gap_end, ox, oy, &ox, &oy);
 
     glBindBuffer(GL_ARRAY_BUFFER, ec->vbo);
@@ -40,6 +46,39 @@ void editor_update(EditorContext* ec) {
     ec->rd.n_verts = n_coords;
 }
 
+typedef struct {
+    EditorContext* ec;
+    const char* text;
+    size_t idx;
+} EditorTypeData;
+static void editor_type_on_update(double t, void* data) {
+    EditorTypeData* etd = data;
+    editor_insert_char(etd->ec, etd->text[etd->idx++]);
+}
+QueueContext editor_type(EditorContext* ec, const char* text, double start_time, double letters_per_sec) {
+    EditorTypeData etd = {
+        .ec = ec,
+        .text = text,
+        .idx = 0,
+    };
+    QueueContext qc = {0};
+    queue_init(&qc);
+    int cb_id = queue_add_cb(&qc, editor_type_on_update, &etd, sizeof etd);
+
+    double t = start_time, incr = 1.0/letters_per_sec;
+    for (int i = 0; text[i]; i++) {
+        queue_add_time(&qc, t, cb_id);
+        t += incr;
+    }
+
+    return qc;
+}
+
+void editor_insert_char(EditorContext* ec, char c) {
+    ec->gap_start[0] = c;
+    ec->gap_start += 1;
+    editor_update(ec);
+}
 void editor_insert(EditorContext* ec, const char* text) {
     strcpy(ec->gap_start, text);
     ec->gap_start += strlen(text);
