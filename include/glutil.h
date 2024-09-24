@@ -2,6 +2,7 @@
 #define GLUTIL_H
 
 #include <stdint.h>
+
 #include <epoxy/gl.h>
 
 #include "render.h"

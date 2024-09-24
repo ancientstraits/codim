@@ -15,7 +15,7 @@ else
 	ifeq ($(OS),Darwin)
 		LFLAGS += -framework OpenGL
 	else
-		LFLAGS += -lopengl32 
+		LFLAGS += -lopengl32
 	endif
 endif
 

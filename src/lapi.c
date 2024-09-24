@@ -2,7 +2,6 @@
 #include "text.h"
 #include "render.h"
 #include "editor.h"
-#include "queue.h"
 #include "scripting.h"
 
 #define MAKE_METAMETHODS(lapi_name, api_name, type_name) \
@@ -138,6 +137,7 @@ static int lapi_editor_get_rd(lua_State* L) {
     return 1;
 }
 static int lapi_editor_insert(lua_State* L) {
+    // printf("this literally does nothing.\n");
     EditorContext* ec = lua_touserdata(L, 1);
     editor_insert(ec, lua_tostring(L, 2));
     return 0;
@@ -206,50 +206,50 @@ static int lapi_mat4x4_dup(lua_State* L) {
 }
 MAKE_METAMETHODS(editor, editor, EditorContext);
 
-typedef struct {
-    lua_State* L;
-    int cb_ref;
-} LapiQueueData;
-void lapi_queue_cb(double t, void* ptr) {
-    LapiQueueData* lqd = ptr;
-    lua_rawgeti(lqd->L, LUA_REGISTRYINDEX, lqd->cb_ref);
-    lua_pushnumber(lqd->L, t);
-    lua_pcall(lqd->L, 1, 0, 0);
-}
-static int lapi_queue_new(lua_State* L) {
-    lua_getfield(L, 1, "onupdate");
-    int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    LapiQueueData* lqd = malloc(sizeof(LapiQueueData));
-    lqd->L = L;
-    lqd->cb_ref = cb_ref;
-
-    QueueContext* qc = lua_newuserdata(L, sizeof(QueueContext));
-    luaL_setmetatable(L, "codim.queue");
-    queue_init(qc);
-    int cb_id = queue_add_cb(qc, lapi_queue_cb, lqd, 1);
-
-    lua_getfield(L, 1, "times");    
-    size_t times_len = lua_objlen(L, -1);
-    for (int i = 0; i < times_len; i++) {
-        lua_rawgeti(L, -1, i+1);
-        double time = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-
-        queue_add_time(qc, time, cb_id);
-    }
-    lua_pop(L, 1);
+static int lapi_abuffer_duration(lua_State* L) {
+    lua_getfield(L, 1, "n_samples");
+    double duration = lua_tonumber(L, -1) * scripting_state.info.sample_rate;
+    lua_pushnumber(L, duration);
 
     return 1;
 }
-static int lapi_queue_update(lua_State* L) {
-    QueueContext* qc = lua_touserdata(L, 1);
-    double time = lua_tonumber(L, 2);
-    queue_update(qc, time);
+static int lapi_abuffer_next(lua_State* L) {
+    lua_getfield(L, 1, "n_samples");
+    size_t n_samples = lua_tointeger(L, -1);
+    lua_getfield(L, 1, "idx");
+    size_t idx = lua_tointeger(L, -1);
 
-    return 0;
+    lua_createtable(L, 2, 0);
+    int ret_idx = lua_gettop(L);
+    if (idx >= n_samples) {
+        lua_pushnumber(L, 0);
+        lua_pushnumber(L, 0);
+    } else {
+        lua_getfield(L, 1, "data");
+        int16_t* samples = lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+        lua_pushinteger(L, idx+1);
+        lua_setfield(L, 1, "idx");
+
+        lua_pushnumber(L, samples[2*idx]);
+        lua_pushnumber(L, samples[2*(idx+1)]);
+    }
+    lua_rawseti(L, ret_idx, 1);
+    lua_rawseti(L, ret_idx, 2);
+
+    return 1;
 }
-MAKE_METAMETHODS(queue, queue, QueueContext);
+
+static int lapi_abuffer_over(lua_State* L) {
+    lua_getfield(L, 1, "n_samples");
+    size_t n_samples = lua_tointeger(L, -1);
+    lua_getfield(L, 1, "idx");
+    size_t idx = lua_tointeger(L, -1);
+
+    lua_pushboolean(L, idx >= n_samples);
+    return 1;
+}
 
 luaL_Reg renderer_api[] = {
     DEFINE_METAMETHODS(renderer),
@@ -283,9 +283,11 @@ luaL_Reg renderdrawable_api[] = {
     {"get_model", lapi_renderdrawable_get_model},
     {0}
 };
-luaL_Reg queue_api[] = {
-    {"update", lapi_queue_update},
-    DEFINE_METAMETHODS(queue),
+luaL_Reg abuffer_api[] = {
+    {"duration", lapi_abuffer_duration},
+    {"next", lapi_abuffer_next},
+    {"over", lapi_abuffer_over},
+    {0}
 };
 
 luaL_Reg lapi_api[] = {
@@ -293,7 +295,6 @@ luaL_Reg lapi_api[] = {
     {"Text",     lapi_text_new},
     {"Editor",   lapi_editor_new},
     {"Mat4x4",   lapi_mat4x4_new},
-    {"Queue",    lapi_queue_new},
     {0}
 };
 
@@ -311,4 +312,5 @@ void lapi_add_bindings(lua_State* L) {
     ADD_AND_MAKE(text);
     ADD_AND_MAKE(editor);
     ADD_AND_MAKE(mat4x4);
+    ADD_AND_MAKE(abuffer);
 }

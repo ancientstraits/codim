@@ -1,5 +1,6 @@
 #include "gfx.h"
 #include "error.h"
+#include "scripting.h"
 
 #include <stdlib.h>
 
@@ -15,9 +16,9 @@ on_gl_err( GLenum source,
                  GLsizei length,
                  const GLchar* message,
                  const void* userParam ) {
-	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+	fprintf( stderr, "GL CALLBACK: %s source=0x%x type=0x%x, id=%d, severity=0x%x, message=\"%s\" pts=%d\n",
 		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-		type, severity, message );
+		source, type, id, severity, message, scripting_state.oc->apts);
 }
 
 
@@ -112,6 +113,8 @@ static GfxContextInternal* gci_create(int width, int height) {
 
 	glfwMakeContextCurrent(gci->win);
 
+	// int err = glewInit();
+	// GASSERT(err == GLEW_OK, "Glew failed: %s", glewGetErrorString(err));
 
 	glGenBuffers(1, &gci->fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, gci->fbo);
@@ -153,7 +156,7 @@ GfxContext* gfx_create(int width, int height) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(on_gl_err, 0);
+	glDebugMessageCallback(on_gl_err, NULL);
 
 	gc->sc = sws_getContext(
 		width, height, AV_PIX_FMT_RGB24,

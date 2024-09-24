@@ -1,3 +1,14 @@
+# Buggy Branch
+This branch has a bug in it, where an OpenGL error is given if list operations are done in a function.
+Here's what we know:
+- It only happens if a `userdata` that is very big, like 225700 bytes, is allocated.
+- It doesn't have anything to do with running out of RAM, since using `malloc` instead works well.
+- Somehow, this affects the OpenGL library.
+- It occurs in the `render` function in `glBindTexture`, which gives an `GL_INVALID_OPERATION`.
+- When `render` is called multiple times per frame, it does not make the error come faster, meaning that the error is not fully caused by `render`.
+
+This error is very big and hard to fix, but if you in the future can fix it, that would be great!
+
 # Codim: A Programming Animation Generator
 Codim is software that can be used to script videos easily with Lua.
 For example, take this Lua script:

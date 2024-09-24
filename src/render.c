@@ -212,6 +212,8 @@ void render(RenderContext* rc, int width, int height) {
 		glUseProgram(rd->prog);
 		glBindVertexArray(rd->vao);
 
+		printf("tex=%d, prog=%d, vao=%d\n", rd->tex, rd->prog, rd->vao);
+
 
 		UNIFORM(rd->prog, "windim", 2f, width, height);
 		UNIFORM(rd->prog, "model", Matrix4fv, 1, GL_FALSE, (float*)rd->model);

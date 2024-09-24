@@ -19,10 +19,13 @@ for lua_file in src/lua/*.lua; do
     name=`echo $lua_file | sed -e 's!^src/lua/!!' -e 's/\.lua$//g' -e 's!/!\.!g'`
     [ "$name" = codim ] || name="codim.$name"
 
-    bytecode=`luajit -b $lua_file - | xxd -i | tr -d '\n'`
-    bytecode_len=`echo $bytecode | wc -w`
+    # bytecode=`luajit -b $lua_file - | xxd -i | tr -d '\n'`
+    # bytecode_len=`echo $bytecode | wc -w`
+    code=`cat $lua_file | sed 's/\\\\/\\\\\\\\/g'`
+    code=${code//$'\n'/\\n}
+    printf '    {%d, "%s", "%s"},\n' "$bytecode_len" "$name" "$code" >> $output
 
-    printf '    {%d, "%s", (char[]){ %s }},\n' "$bytecode_len" "$name" "$bytecode" >> $output
+    # printf '    {%d, "%s", (char[]){ %s }},\n' "$bytecode_len" "$name" "$bytecode" >> $output
 done
 
 cat >> $output << EOF

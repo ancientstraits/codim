@@ -57,7 +57,7 @@ GLuint shader_prog_from_ids(GLuint vert_shader, GLuint frag_shader) {
 	if (!success) {
 		char log[512];
 		glGetProgramInfoLog(prog, 512, NULL, log);
-		GASSERT(false, "Program error: %s", log);
+		GASSERT(0, "Program error: %s", log);
 	}
 
 	return prog;

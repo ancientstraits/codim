@@ -14,11 +14,13 @@ function editor_table:type(text, start, letters_per_sec)
         sequential = true,
         times = times,
         onupdate = function(t)
-            self:insert(text:sub(idx, idx))
-            idx = idx + 1
+            -- print(text:sub(idx, idx))
+            print(string.sub('pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp', idx, idx))
+            -- self:insert('M')
+            -- self:insert(text:sub(idx, idx))
+            idx = 1
         end
     }
 end
-print('hi')
 
 return internal

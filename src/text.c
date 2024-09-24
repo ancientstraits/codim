@@ -195,8 +195,6 @@ RenderDrawable text_render(TextContext* tc, const char* s, float tx, float ty) {
 
 	free(coords);
 
-	mat4x4_identity(NULL);
-
 	RenderDrawable ret = {
 		.vao = vao,
 		// .vbo = vbo,

@@ -30,21 +30,42 @@
 // } state = {0};
 
 ScriptingState scripting_state;
+// void* goofy_ptr;
 
 static int api_arecord(lua_State* L) {
-    const char* prompt = lua_isnil(L, 1) ? NULL : lua_tostring(L, 1);
-    arecord_prompt_and_record(scripting_state.arc, prompt);
-    ARecordUserData udata = arecord_get_data_copy(scripting_state.arc);
+    // const char* prompt = lua_isnil(L, 1) ? NULL : lua_tostring(L, 1);
+    // arecord_prompt_and_record(scripting_state.arc, prompt);
+    // ARecordUserData udata = arecord_get_data_copy(scripting_state.arc);
+    // ARecordUserData* udata = &scripting_state.arc->udata;
 
-    // TODO convert this to userdata to make it faster
-    lua_createtable(L, 2*udata.idx, 0);
-    for (int i = 0; i < 2*udata.idx; i++) {
-        lua_pushinteger(L, udata.samples[i]);
-        lua_rawseti(L, -2, i+1);
-    }
+    // lua_createtable(L, 0, 3);
+    // luaL_setmetatable(L, "codim.abuffer");
 
-    free(udata.samples);
+    // size_t size = sizeof(int16_t)*2*(udata->idx);
+    // printf("%llu", size);
+    printf("ALLOCATING BUFFER\n");
+    // int size = atoi(getenv("TEST"));
+    // Any size above some number causes the error.
+    int16_t* buf = lua_newuserdata(L, 225700);
+    // It's unfreed memory throughout the program, but it causes NO PROBLEM.
+    // void* goofy_ptr = malloc(225700);
+    // goofy_ptr = malloc(sizeof(int16_t)*2*44100);
+    printf("DONE ALLOCATING BUFFER\n");
+    // goofy_ptr = malloc(sizeof(int16_t)*2*44100);
+    // goofy_ptr = realloc(NULL, sizeof(int16_t)*2*44100);
+    // lua_pushnumber(L, 1234);
+    // memcpy(buf, udata->samples, size);
+    lua_pop(L, 1);
+    // lua_setfield(L, -2, "data");
+
+    // lua_pushinteger(L, 0);
+    // lua_setfield(L, -2, "idx");
+
+    // lua_pushinteger(L, udata->idx);
+    // lua_setfield(L, -2, "n_samples");
     return 1;
+
+    // return 0;
 }
 
 static int api_output(lua_State* L) {
@@ -193,13 +214,30 @@ static void make_video(lua_State* L, int audio_cb, int video_cb) {
 
 void add_luagen_bindings(lua_State* L, int preload) {
     for (int i = 0; luagen_entries[i].name; i++) {
-        luaL_loadbuffer(L, luagen_entries[i].code, luagen_entries[i].size, luagen_entries[i].name);
+        luaL_loadstring(L, luagen_entries[i].code);
+        // luaL_loadbuffer(L, luagen_entries[i].code, luagen_entries[i].size, luagen_entries[i].name);
         lua_setfield(L, preload, luagen_entries[i].name);
     }
 }
 
+static void* alloc(void* ud, void* ptr, size_t osize, size_t nsize) {
+    if (nsize == 0) {
+        printf("free()    %p\n", ptr);
+        free(ptr);
+        return NULL;
+    }
+    if (osize == 0) {
+        void* ret = malloc(nsize);
+        printf("malloc()  to %llu (got %p) \n", nsize, ret);
+        return ret;
+    }
+    printf("realloc() %p from %llu to %llu\n", ptr, osize, nsize);
+    return realloc(ptr, nsize);
+}
+
 void scripting_exec(const char* scriptname) {
     lua_State* L = luaL_newstate();
+    // lua_State* L = lua_newstate(alloc, NULL);
     luaL_openlibs(L);
 
     // for `require('codim')`
@@ -222,6 +260,8 @@ void scripting_exec(const char* scriptname) {
 
     make_video(L, audio_cb, video_cb);
     // make_video(L, video_cb);
+
+    // free(goofy_ptr);
 
     // lua_close(L);
 }

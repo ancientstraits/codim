@@ -4,7 +4,6 @@
 #include "editor.h"
 #include "error.h"
 #define EASSERT(cond, ...) ASSERT(cond, ERROR_EDITOR, __VA_ARGS__);
-#include "queue.h"
 
 void editor_init(EditorContext* ec, TextContext* tc, int x, int y, int w, int h) {
     ec->capacity = 4096; // Estimate; replace this with calculations later
@@ -54,24 +53,6 @@ typedef struct {
 static void editor_type_on_update(double t, void* data) {
     EditorTypeData* etd = data;
     editor_insert_char(etd->ec, etd->text[etd->idx++]);
-}
-QueueContext editor_type(EditorContext* ec, const char* text, double start_time, double letters_per_sec) {
-    EditorTypeData etd = {
-        .ec = ec,
-        .text = text,
-        .idx = 0,
-    };
-    QueueContext qc = {0};
-    queue_init(&qc);
-    int cb_id = queue_add_cb(&qc, editor_type_on_update, &etd, sizeof etd);
-
-    double t = start_time, incr = 1.0/letters_per_sec;
-    for (int i = 0; text[i]; i++) {
-        queue_add_time(&qc, t, cb_id);
-        t += incr;
-    }
-
-    return qc;
 }
 
 void editor_insert_char(EditorContext* ec, char c) {
