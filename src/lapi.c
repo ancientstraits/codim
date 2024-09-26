@@ -6,6 +6,7 @@
 
 #define MAKE_METAMETHODS(lapi_name, api_name, type_name) \
 static int lapi_##lapi_name##_gc(lua_State* L) { \
+    puts("Destructing " #type_name); \
     type_name* ptr = lua_touserdata(L, 1); \
     api_name##_deinit(ptr); \
     return 0; \
@@ -44,10 +45,12 @@ static int lapi_renderer_add(lua_State* L) {
 
     RenderDrawable* rd;
     if (luaL_testudata(L, 2, "codim.editor")) {
+        printf("ok\n");
         EditorContext* ec = lua_touserdata(L, 2);
 
         rd = &ec->rd;
     } else {
+        printf("smth else\n");
         rd = lua_touserdata(L, 2);
     }
 

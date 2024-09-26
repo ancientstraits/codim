@@ -208,6 +208,7 @@ void render(RenderContext* rc, int width, int height) {
 	for (int i = 0; i < arrlen(rc->drawables); i++) {
 		RenderDrawable* rd = rc->drawables[i];
 		// printf("(%d, %d)\n", rd->texdim[0], rd->texdim[1]);
+		printf("%s\n", glIsTexture(rd->tex) ? "True" : "False");
 		glBindTexture(GL_TEXTURE_2D, rd->tex);
 		glUseProgram(rd->prog);
 		glBindVertexArray(rd->vao);

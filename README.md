@@ -1,3 +1,6 @@
+# The bug was fixed !!!
+It was caused because Lua was destructing my objects early, because there were no Lua references to them.
+
 # Buggy Branch
 This branch has a bug in it, where an OpenGL error is given if list operations are done in a function.
 Here's what we know:

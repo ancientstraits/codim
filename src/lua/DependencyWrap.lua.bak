@@ -1,0 +1,23 @@
+DependencyWrap(Editor, editor_mt, {
+    add_deps_when = {
+        {
+            fn = Editor,
+            args = 1,
+        }
+    }
+})
+
+DependencyWrap(Renderer, renderer_mt, {
+    add_deps_when = {
+        {
+            fn = 'add',
+            args = 1,
+        }
+    }, 
+    del_deps_when = {
+        {
+            fn = 'del',
+            args = 1,
+        }
+    }
+})

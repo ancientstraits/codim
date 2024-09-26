@@ -146,6 +146,8 @@ static void print_stack(lua_State* L) {
             printf("\t\t%lf\n", lua_tonumber(L, i));
         else if (lua_isstring(L, i))
             printf("\t\t%s\n", lua_tostring(L, i));
+        else if (lua_istable(L, i))
+            printf("\t\t%llu\n", lua_objlen(L, i));
     }
 }
 
@@ -171,29 +173,34 @@ static void make_video(lua_State* L, int audio_cb, int video_cb) {
             output_close(scripting_state.oc);
 
         if (output_get_encode_type(scripting_state.oc) == OUTPUT_TYPE_VIDEO) {
-            lua_pushvalue(L, video_cb); // video callback
-            lua_pushnumber(L, ((double)vframeno/(double)scripting_state.info.fps)); // argument `t`
             // print_stack(L);
-            SASSERT(!lua_pcall(L, 1, 0, 0), "Error running video(): %s", lua_tostring(L, -1));
+
+            // lua_pushvalue(L, video_cb); // video callback
+            lua_rawgeti(L, LUA_REGISTRYINDEX, video_cb); // video callback
+            // lua_pushnumber(L, ((double)vframeno/(double)scripting_state.info.fps)); // argument `t`
+            // print_stack(L);
+            // SASSERT(!lua_pcall(L, 1, 0, 0), "Error running video(): %s", lua_tostring(L, -1));
+            SASSERT(!lua_pcall(L, 0, 0, 0), "Error running video(): %s", lua_tostring(L, -1));
 
             // glClear(GL_COLOR_BUFFER_BIT);
             // render(scripting_state.rc, sr->width, sr->height);
-            gfx_render(scripting_state.gc, scripting_state.oc->vf);
+            // gfx_render(scripting_state.gc, scripting_state.oc->vf);
             output_encode_video(scripting_state.oc);
             vframeno++;
         } else if (output_get_encode_type(scripting_state.oc) == OUTPUT_TYPE_AUDIO) {
             int16_t* data = (int16_t*)scripting_state.oc->afd->data[0];
             for (int i = 0; i < scripting_state.oc->afd->nb_samples; i++) {
-                lua_pushvalue(L, audio_cb);
-                lua_pushnumber(L, ((double)aframeno/(double)scripting_state.info.sample_rate));
-                SASSERT(!lua_pcall(L, 1, 2, 0), "Error running audio(): %s", lua_tostring(L, -1));
+                lua_rawgeti(L, LUA_REGISTRYINDEX, audio_cb); // audio callback
+                // lua_pushnumber(L, ((double)aframeno/(double)scripting_state.info.sample_rate));
+                // SASSERT(!lua_pcall(L, 1, 2, 0), "Error running audio(): %s", lua_tostring(L, -1));
+                SASSERT(!lua_pcall(L, 0, 2, 0), "Error running audio(): %s", lua_tostring(L, -1));
 
                 int16_t left  = lua_tointeger(L, -1);
                 int16_t right = lua_tointeger(L, -2);
                 *data++ = left;
                 *data++ = right;
 
-                // lua_pop(L, 1);
+                // lua_pop(L, 2);
                 aframeno++;
             }
             lua_pop(L, 2*scripting_state.oc->afd->nb_samples);
@@ -253,10 +260,10 @@ void scripting_exec(const char* scriptname) {
     SASSERT(!lua_pcall(L, 0, 1, 0), "Error running script: %s", lua_tostring(L, -1));
 
     lua_getfield(L, -1, "video");
-    int video_cb = lua_gettop(L);
+    int video_cb = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    lua_getfield(L, -2, "audio");
-    int audio_cb = lua_gettop(L);
+    lua_getfield(L, -1, "audio");
+    int audio_cb = luaL_ref(L, LUA_REGISTRYINDEX);
 
     make_video(L, audio_cb, video_cb);
     // make_video(L, video_cb);

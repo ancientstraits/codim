@@ -73,10 +73,11 @@ local buf = cm.arecord('amogus')
 local i = 0
 
 return {
-    video = function(t)
-        if t >= 1.0 then
+    video = function()
+        if i >= 24 then
             cm.stop()
         end
+        i = i + 1
         -- if end_t then
         --     if t >= end_t then cm.stop() end
         -- elseif queue:over() then
@@ -90,9 +91,9 @@ return {
 
         -- cm.clear(0.3, 0.4, 0.5, 0.0)
         r:render()
-        r:render()
+        -- r:render()
     end,
-    audio = function(t)
+    audio = function()
         -- i = i + 1
         -- local a = {1, 2, 3}
         -- local x = a[1]
